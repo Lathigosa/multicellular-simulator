@@ -3,6 +3,7 @@ A personal playground to test various models of multicellular developmental dyna
 
 ## Demonstration
 [![Video demonstration of the simulator](https://img.youtube.com/vi/jIlXnYCDbYs/0.jpg)](https://www.youtube.com/watch?v=jIlXnYCDbYs)
+
 Click the image above to see a simple video demonstration of dividing, growing, and dying cells confined to an invisible 3D forcefield box. This simulation shows a multicellular blob of up to 1 000 000 cells, running in real-time on a consumer-grade graphics card (NVidia GTX 1070). More complex simulations can be made by defining more complex CRNs.
 
 ## Description
