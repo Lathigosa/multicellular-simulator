@@ -1,10 +1,12 @@
 # Multicellular Simulator
-A personal playground to test various models of multicellular developmental dynamics.
+A personal playground to test various models of multicellular developmental dynamics. This was a solo hobby project that I worked on in 2017, but which I haven't updated since.
 
-The simulation, chemical reaction networks, force fields, and other cell-based settings can be customized easily by editing the `test_lua_code.lua` file, no recompilation necessary.
+This system can simulate multicellular systems in a particle-based manner, including various intercellular forces, chemical reaction networks (CRNs), cell division driven by CRN signals, cell death (including apoptosis driven by CRN signals), external force fields, and cell polarity. The simulation, chemical reaction networks, force fields, and other cell-based settings can be easily customized by editing the `test_lua_code.lua` file, without requiring recompilation.
+
+The software runs most of its simulation code on an available OpenCL-capable graphics card, currently tested with an NVidia GTX 1070, for high performance simulations. The software dynamically compiles code for the graphics card based on the simulation setup.
 
 ## Demonstration
-Click the image below to see a simple video demonstration of dividing, growing, and dying cells confined to an invisible 3D forcefield box. This simulation shows a multicellular blob of up to 1 000 000 cells, running on a consumer-grade graphics card (NVidia GTX 1070).
+Click the image below to see a simple video demonstration of dividing, growing, and dying cells confined to an invisible 3D forcefield box. This simulation shows a multicellular blob of up to 1 000 000 cells, running on a consumer-grade graphics card (NVidia GTX 1070). More complex simulations can be made by defining more complex CRNs.
 
 [![Video demonstration of the simulator](https://img.youtube.com/vi/jIlXnYCDbYs/0.jpg)](https://www.youtube.com/watch?v=jIlXnYCDbYs)
 
@@ -21,3 +23,6 @@ Make sure that all dependencies are installed. This includes:
 - LuaJIT 5.1
 
 - pybind11/pybind11.h		  (`usr/bin/python3 -m pip install pybind11` (requires pip))
+
+
+Once these are all installed, simply run `make` to compile the project. Use `make clean` if previous builds cause interference.
