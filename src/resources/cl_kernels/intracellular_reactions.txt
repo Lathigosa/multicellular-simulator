@@ -1,0 +1,21 @@
+--intracellular_reactions:
+
+The array in_rate_equations is formatted like this:
+
+X + Y -> Z
+A + B -> Z
+rate_Z = k*[X]*[Y] + l*[A]*[B]
+
+entry|integer,			float,			integer,	float
+entry|target rate index, rate constant, [A] index, [A] power
+0|
+1|
+2|
+3|
+4|
+5|
+6|
+7|
+.|
+.|
+.|

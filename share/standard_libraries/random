@@ -1,0 +1,43 @@
+// Opencl
+
+#include <Random123/threefry.h>
+
+// Generate a random integer (adapted from boost::compute::threefry):
+uint2 generate_random_int(const uint2 key, const uint2 counter)
+{
+	uint gid = get_global_id(0);
+	threefry2x32_ctr_t c;
+	c.v[0] = counter.x + gid;
+	c.v[1] = counter.y + (c.v[0] < counter.x ? 1 : 0);
+	
+	threefry2x32_key_t k = { {key.x, key.y} };
+	threefry2x32_ctr_t result;
+	result = threefry2x32(c, k);
+	
+	return (uint2)(result.v[0], result.v[1]);
+}
+
+float2 transform_to_uniform(const uint2 random_int)
+{
+	return (float2)(nextafter(random_int.x / (float) UINT_MAX, (float) 0),
+					nextafter(random_int.y / (float) UINT_MAX, (float) 0));
+}
+
+float2 generate_random_float(const uint2 key, const uint2 counter)
+{
+	return transform_to_uniform(generate_random_int(key, counter));
+}
+
+// Transform uniformly distributed random variables from [0, 1) to a gaussian distribution (adapted from boost::compute).
+float2 box_muller_transform(float2 x, float mean, float sigma)
+{
+	const float x1 = x.x;
+	const float x2 = x.y;
+	
+	const float rho = sqrt(-2.0f * log(1.0f - x1));
+	
+	const float z1 = rho * cos(2.0f * M_PI_F * x2);
+	const float z2 = rho * sin(2.0f * M_PI_F * x2);
+	
+	return (float2)(mean, mean) + (float2)(z1, z2) * (float2)(sigma, sigma);
+}
