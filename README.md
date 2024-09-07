@@ -7,7 +7,7 @@ A personal playground to test various models of multicellular developmental dyna
 Click the image above to see a simple video demonstration of dividing, growing, and dying cells confined to an invisible 3D forcefield box. This simulation shows a multicellular blob of up to 1 000 000 cells, running in real-time on a consumer-grade graphics card (NVidia GTX 1070). More complex simulations can be made by defining more complex CRNs.
 
 ## Description
-This was a solo hobby project that I worked on in 2017, but which I haven't updated since.
+This was a solo hobby project that I worked on in 2018, but which I haven't updated since.
 
 This system can simulate multicellular systems in a particle-based manner, including various intercellular forces, chemical reaction networks (CRNs), cell division driven by CRN signals, cell death (including apoptosis driven by CRN signals), external force fields, and cell polarity. The simulation, chemical reaction networks, force fields, and other cell-based settings can be easily customized by editing the `test_lua_code.lua` file, without requiring recompilation.
 
