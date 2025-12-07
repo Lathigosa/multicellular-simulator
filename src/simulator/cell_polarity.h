@@ -47,7 +47,7 @@ namespace simulation
 		                             			cl::Buffer copied_cells,
 		                              			unsigned int copied_count) override;
 
-			const void expose_lua_library(lua_State* L) const override;
+			void expose_lua_library(lua_State* L) const override;
 
 			// Own library functions:
 			error set_reactions(std::string reaction_definitions);

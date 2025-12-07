@@ -1,14 +1,14 @@
 #include "core/data_system.h"
 
 #include <stdexcept>
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <memory>
 #include <algorithm>
 #include <cctype>
 
 #include "utilities/load_file.h"
 
-data_system::data_system(cl::Platform & platform,
+DataSystem::DataSystem(cl::Platform & platform,
                          cl::Device & device,
                          cl::Context & context,
                          cl::CommandQueue & command_queue) : 
@@ -20,17 +20,17 @@ data_system::data_system(cl::Platform & platform,
 	
 }
 
-data_system::~data_system()
+DataSystem::~DataSystem()
 {
 
 }
 
-void data_system::build()
+void DataSystem::build()
 {
 	
 }
 
-cl::Program data_system::get_program_from_file(const char* const file_name) const
+cl::Program DataSystem::get_program_from_file(const char* const file_name) const
 {
 	std::string kernel_code = load_file(file_name);
 	cl::Program::Sources sources;
@@ -46,29 +46,29 @@ cl::Program data_system::get_program_from_file(const char* const file_name) cons
 	return program;
 }
 
-cl::Kernel data_system::get_kernel_from_file(const char* const file_name, const char* const kernel_name) const
+cl::Kernel DataSystem::get_kernel_from_file(const char* const file_name, const char* const kernel_name) const
 {
 	cl::Program program = get_program_from_file(file_name);
 
 	return cl::Kernel(program, kernel_name);
 }
 
-cl::Platform& data_system::getPlatform()
+cl::Platform& DataSystem::getPlatform()
 {
 	return m_platform;
 }
 
-cl::Device& data_system::getDevice()
+cl::Device& DataSystem::getDevice()
 {
 	return m_device;
 }
 
-cl::Context& data_system::getContext()
+cl::Context& DataSystem::getContext()
 {
 	return m_context;
 }
 
-cl::CommandQueue& data_system::getCommandQueue()
+cl::CommandQueue& DataSystem::getCommandQueue()
 {
 	return m_command_queue;
 }

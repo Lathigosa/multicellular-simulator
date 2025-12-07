@@ -95,5 +95,8 @@ std::vector<event_info> cell_particle_physics::run(data_buffer::Array<cl_float4>
 	position_1.swapBuffers();
 	velocity_1.swapBuffers();
 
-	return {{event_sort_particles, "CELL_SYSTEM: sort particles"}, {event_physics, "CELL_SYSTEM: physics"}};
+	EventLog log;
+	log.add(event_info("CELL SYSTEM: sort particles", event_info::kernel, event_sort_particles));
+	log.add(event_info("CELL SYSTEM: physics", event_info::kernel, event_physics));
+	return std::move(log.get());
 }

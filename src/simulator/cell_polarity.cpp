@@ -132,7 +132,7 @@ error cell_polarity::signal_cell_reindex(const std::string sim_unit_name,
 	return error::success;
 }
 
-const void cell_polarity::expose_lua_library(lua_State* L) const
+void cell_polarity::expose_lua_library(lua_State* L) const
 {
 	// Include the library to the lua state:
 	//luaL_register(L, nullptr, lua::sim_cell_polarity::functions);

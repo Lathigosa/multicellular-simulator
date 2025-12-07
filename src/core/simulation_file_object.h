@@ -3,7 +3,6 @@
 
 #include <string>
 #include <luajit-2.1/lua.hpp>
-#include <exception>
 #include <memory>
 
 #include <gtkmm/glarea.h>

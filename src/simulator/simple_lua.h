@@ -20,7 +20,7 @@
 namespace simulation
 {
 
-	class simple_lua : public sim_unit_template
+	class simple_lua : public SimulationUnitTemplate
 	{
 		public:
 			SIMULATOR_DEFINITION("sim_simple_lua", {})

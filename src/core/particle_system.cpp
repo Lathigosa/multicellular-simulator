@@ -1,27 +1,31 @@
 #include "core/particle_system.h"
 
-#include <stdexcept>
-#include <CL/cl2.hpp>
-#include <memory>
-#include <algorithm>
-#include <cctype>
+#include <numeric>
+#include <filesystem>
+#include <CL/opencl.hpp>
 #include <cmath>
 
-#include "resources/opencl_kernels.h"
 #include "core/data_variable.h"
 
 #include "utilities/load_file.h"
+
+namespace fs = std::filesystem;
 
 ParticleSystem::ParticleSystem(cl::Platform & platform,
                                cl::Device & device,
                                cl::Context & context,
                                cl::CommandQueue & command_queue) : 
-	data_system(platform, device, context, command_queue)
+	DataSystem(platform, device, context, command_queue)
 {
+	// Paths:
+	fs::path delete_particles_random = "cl_kernels/delete_particles_random.cl";
+	fs::path concatenate             = "cl_kernels/sim_cell_division2.cl";
+	fs::path delete_sort             = "cl_kernels/delete_particles.cl";
+
 	// Load kernels:
 	kernel_random_deletion = get_kernel_from_file("cl_kernels/delete_particles_random.cl", "membrane_simulate_particles");
-	kernel_concatenate = get_kernel_from_file("cl_kernels/sim_cell_division2.cl", "concatenate");
-	kernel_delete_sort = get_kernel_from_file("cl_kernels/delete_particles.cl", "sort_deleted_list");
+	kernel_concatenate     = get_kernel_from_file("cl_kernels/sim_cell_division2.cl", "concatenate");
+	kernel_delete_sort     = get_kernel_from_file("cl_kernels/delete_particles.cl", "sort_deleted_list");
 
 	// Test count:
 	particle_count = 32*32;	// TODO: remove
@@ -49,12 +53,12 @@ ParticleSystem::~ParticleSystem() { }
 
 void ParticleSystem::setupBuffers()
 {
-	new_cell_indices = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
-	new_cell_group_size = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count/workgroup_size);
-	deleted_cell_indices = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
+	new_cell_indices        = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
+	new_cell_group_size     = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count/workgroup_size);
+	deleted_cell_indices    = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
 	deleted_cell_group_size = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count/workgroup_size);
-	empty_cells = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);				
-	copied_cells = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
+	empty_cells             = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);				
+	copied_cells            = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
 }
 
 std::vector<event_info> ParticleSystem::customDeletionFunction(cl::Buffer& empty_cells,
@@ -82,8 +86,8 @@ std::vector<event_info> ParticleSystem::customDuplicationFunction(cl::Buffer& em
 	return {};
 }
 
-std::vector<event_info> ParticleSystem::finalizeDuplicationDeletion()
-{
+std::vector<event_info> ParticleSystem::deleteMarkedParticles() {
+	EventLog log;
 	// ************************************************** //
 	//  Gather deletion information and delete particles  //
 	// ************************************************** //
@@ -92,21 +96,32 @@ std::vector<event_info> ParticleSystem::finalizeDuplicationDeletion()
 	// This list is expected to be concatenated already by a previous kernel.
 	unsigned int array_cell_deleted_group_size[maximal_cell_count/workgroup_size];
 
-	m_command_queue.enqueueReadBuffer(deleted_cell_group_size, CL_TRUE, 0, maximal_cell_count/workgroup_size*sizeof(cl_uint), array_cell_deleted_group_size, nullptr);
-	m_command_queue.finish();
+	cl::Event event_read_deleted_group_size;
 
-	// Count the number of particles that have to be removed to determine the ndrange of the removal kernels:
-	unsigned int empty_count = 0;
-	for(int i=0; i<std::ceil(double(particle_count)/256.0); i++)
-	{
-		empty_count += array_cell_deleted_group_size[i];
-	}
+	m_command_queue.enqueueReadBuffer(
+		deleted_cell_group_size,
+		CL_TRUE,
+		0,
+		maximal_cell_count/workgroup_size*sizeof(cl_uint),
+		array_cell_deleted_group_size,
+		nullptr,
+		&event_read_deleted_group_size
+	);
+	m_command_queue.finish();
+	log.add(event_info("READ: deleted cell group size", event_info::read_buffer, event_read_deleted_group_size));
+
+	std::size_t group_count = (particle_count + 255) / 256;  // ceiling division
+	unsigned int empty_count = std::accumulate(
+		array_cell_deleted_group_size,
+		array_cell_deleted_group_size + group_count,
+		0u
+	);
 
 	//message_debug("ARRAY_DELETED: " << array_cell_deleted_group_size[0] << array_cell_deleted_group_size[1] << array_cell_deleted_group_size[2] << array_cell_deleted_group_size[3]);
 
 	if(empty_count != 0)
 	{
-		message_debug("empty_count = " << empty_count << " | particle count: " << particle_count);
+		message_debug("empty_count = ", empty_count, " | particle count: ", particle_count);
 		
 		// Send signal to rearrange the variable list in the derived class:
 		if(empty_count <= particle_count)
@@ -118,24 +133,30 @@ std::vector<event_info> ParticleSystem::finalizeDuplicationDeletion()
 		}
 	}
 
-	
-
 	m_command_queue.finish();
 	//TODO: REMOVE ANY AND ALL BLOCKING CALLS!!!!
 
-	
+	return std::move(log.get());
+}
 
+std::vector<event_info> ParticleSystem::duplicateMarkedParticles() {
+	EventLog log;
 	// **************************************************** //
 	//  Gather duplication information and duplicate cells  //
 	// **************************************************** //
 
 	cl::Event event_read_group_size;
-	cl::Event event_fill_new_cell_group_size;
-	cl::Event event_fill_copied_cells;
-
+	
 	unsigned int array_cell_group_size[maximal_cell_count/workgroup_size];
-	//queue.enqueueReadBuffer(new_cell_group_size, CL_TRUE, 0, std::ceil(double(cell_count)/256.0)*sizeof(cl_uint), array_cell_group_size, nullptr, &event_read_group_size);
-	m_command_queue.enqueueReadBuffer(new_cell_group_size, CL_TRUE, 0, maximal_cell_count/workgroup_size*sizeof(cl_uint), array_cell_group_size, nullptr, &event_read_group_size);
+	m_command_queue.enqueueReadBuffer(
+		new_cell_group_size,
+		CL_TRUE,
+		0,
+		maximal_cell_count/workgroup_size*sizeof(cl_uint),
+		array_cell_group_size,
+		nullptr,
+		&event_read_group_size
+	);
 	m_command_queue.finish();
 
 	copied_count = 0;
@@ -147,7 +168,7 @@ std::vector<event_info> ParticleSystem::finalizeDuplicationDeletion()
 
 	if(copied_count != 0)
 	{
-		message_debug("copied_count = " << copied_count);
+		message_debug("copied_count = ", copied_count);
 		if(copied_count + particle_count < maximal_cell_count)
 		{
 			customDuplicationFunction(empty_cells, copied_cells, copied_count);
@@ -157,11 +178,20 @@ std::vector<event_info> ParticleSystem::finalizeDuplicationDeletion()
 		}
 	}
 
-	message_debug("CURRENT PARTICLE COUNT: " << particle_count);
+	//message_debug("CURRENT PARTICLE COUNT: ", particle_count);
 
+	log.add(event_info("CELL_SYSTEM: read group size", event_info::read_buffer, event_read_group_size));
+	return std::move(log.get());
+}
+
+std::vector<event_info> ParticleSystem::clearDuplicationDeletionBuffers() {
+	EventLog log;
 	// ********************************************** //
 	//      Clear division and deletion buffers       //
 	// ********************************************** //
+
+	cl::Event event_fill_new_cell_group_size;
+	cl::Event event_fill_copied_cells;
 
 	cl_int fill_pattern = 0;
 	
@@ -171,11 +201,18 @@ std::vector<event_info> ParticleSystem::finalizeDuplicationDeletion()
 	m_command_queue.enqueueFillBuffer(empty_cells, fill_pattern, 0, sizeof(cl_int)*maximal_cell_count, nullptr);
 	m_command_queue.enqueueFillBuffer(deleted_cell_indices, fill_pattern, 0, sizeof(cl_int)*maximal_cell_count, nullptr);
 	
-	return {{event_read_group_size, "CELL_SYSTEM: read group size"},
-		{event_fill_new_cell_group_size, "CELL_SYSTEM: fill new cell group size"},
-		{event_fill_copied_cells, "CELL_SYSTEM: fill copied cells"}};
+	log.add(event_info("CELL_SYSTEM: fill new cell group size", event_info::fill_buffer, event_fill_new_cell_group_size));
+	log.add(event_info("CELL_SYSTEM: fill copied cells", event_info::fill_buffer, event_fill_copied_cells));
+	return std::move(log.get());
+}
 
-	//return {};
+std::vector<event_info> ParticleSystem::finalizeDuplicationDeletion()
+{
+	EventLog log;
+	log.add(deleteMarkedParticles());
+	log.add(duplicateMarkedParticles());
+	log.add(clearDuplicationDeletionBuffers());
+	return std::move(log.get());
 }
 
 unsigned int ParticleSystem::getMaximalParticleCount()

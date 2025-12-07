@@ -10,7 +10,7 @@
 //TODO: perhaps substitute this for <luajit-2.0/lua.hpp>:
 #include "core/lua_functions.h"
 
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <vector>
 #include <string>
 #include <memory>
@@ -69,12 +69,33 @@ namespace simulation
 		unsigned int range_end;
 	};
 
-	// struct containing a double buffer and extras:
 	struct double_buffer
 	{
 		cl::Buffer buffer[2];
-		unsigned int entry_size = 0;
 		unsigned int entry_count = 0;
+		unsigned int entry_size = 0;
+	};
+
+	// struct containing a double buffer and extras:
+	template <typename T>
+	class DoubleBuffer
+	{
+	private:
+		cl::Buffer buffer[2];
+		bool active = false;
+
+	public:
+		DoubleBuffer(cl::Context context);
+		
+		unsigned int entry_count = 0;
+
+		cl::Buffer& front() { return buffer[active]; }
+		cl::Buffer& back()  { return buffer[!active]; }
+
+		void swap() { active = !active; }
+
+		static constexpr size_t entry_size = sizeof(T);
+		size_t byte_size() const { return entry_count * entry_size; }
 	};
 
 	// class containing an arbitrary data union for use in each simulator's arbitrary data map:
@@ -103,11 +124,11 @@ namespace simulation
 		} type;
 	};*/
 
-	class sim_unit_template
+	class SimulationUnitTemplate
 	{
 	public:
-		sim_unit_template(cl::Platform & platform_cl, cl::Device & device_cl, cl::Context & context, cl::CommandQueue & command_queue);
-		virtual ~sim_unit_template();
+		SimulationUnitTemplate(cl::Platform & platform_cl, cl::Device & device_cl, cl::Context & context, cl::CommandQueue & command_queue);
+		virtual ~SimulationUnitTemplate();
 
 		virtual error initialize_buffers();
 		#ifndef NO_UI
@@ -121,9 +142,9 @@ namespace simulation
 		virtual const std::vector<std::string> get_dependencies() const;
 
 		/// Push a list of pointers to the dependencies to this sim unit:
-		error set_dependency_pointers(std::vector<sim_unit_template*> &list);
-		error set_child_pointers(std::vector<sim_unit_template*> &list);
-		error add_child_pointer(sim_unit_template* unit);
+		error set_dependency_pointers(std::vector<SimulationUnitTemplate*> &list);
+		error set_child_pointers(std::vector<SimulationUnitTemplate*> &list);
+		error add_child_pointer(SimulationUnitTemplate* unit);
 
 		virtual void init();											// The function that calls initialize_buffers();
 		std::vector<event_info> simulate(float step_size);				// The function that calls simulate_unit();
@@ -161,7 +182,7 @@ namespace simulation
 		                                  unsigned int range_start,
 		                                  unsigned int count);
 
-		virtual const void expose_lua_library(lua_State* L) const;
+		virtual void expose_lua_library(lua_State* L) const;
 
 		int get_custom_int(const std::string key) const;
 		float get_custom_float(const std::string key) const;
@@ -186,8 +207,8 @@ namespace simulation
 		void set_custom_data(const std::string key, float value);
 		void set_custom_data(const std::string key, unsigned int value);
 
-		std::vector<sim_unit_template*> dependency_pointers;		// The simulation units that this unit depends on.
-		std::vector<sim_unit_template*> dependency_child_pointers;	// The simulation units that are dependent on this one.
+		std::vector<SimulationUnitTemplate*> dependency_pointers;		// The simulation units that this unit depends on.
+		std::vector<SimulationUnitTemplate*> dependency_child_pointers;	// The simulation units that are dependent on this one.
 
 		unsigned int create_double_buffer(std::string name, unsigned int entry_size, unsigned int entry_count, unsigned int max_count);
 

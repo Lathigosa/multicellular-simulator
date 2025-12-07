@@ -69,7 +69,14 @@ std::vector<event_info> cell_death_barrier::simulate_unit(float step_size)
 	kernel_random_death.setArg(2, particle_count);
 	kernel_random_death.setArg(3, std::rand() / static_cast<float>(RAND_MAX));
 	
-	queue.enqueueNDRangeKernel(kernel_random_death, cl::NullRange, cl::NDRange(ceil(double(particle_count)/256.0)*256), cl::NDRange(256), nullptr, &event_random_death);   // TODO: determine proper local size!
+	queue.enqueueNDRangeKernel(
+		kernel_random_death,
+		cl::NullRange,
+		cl::NDRange(ceil(double(particle_count)/256.0)*256),
+		cl::NDRange(256),
+		nullptr,
+		&event_random_death
+	);   // TODO: determine proper local size!
 
 	// ********************************************** //
 	// 				Concatenate the data		      //
@@ -78,11 +85,20 @@ std::vector<event_info> cell_death_barrier::simulate_unit(float step_size)
 	kernel_concatenate.setArg(1, deleted_cell_indices);
 	kernel_concatenate.setArg(2, deleted_cell_group_size);
 	
-	queue.enqueueNDRangeKernel(kernel_concatenate, cl::NullRange, cl::NDRange(ceil(double(particle_count)/256.0)), cl::NullRange, nullptr, &event_concatenate);
-	
-	
+	queue.enqueueNDRangeKernel(
+		kernel_concatenate,
+		cl::NullRange,
+		cl::NDRange(ceil(double(particle_count)/256.0)),
+		cl::NullRange,
+		nullptr,
+		&event_concatenate
+	);
 
 	// Switch the buffers:
 	buffer_index = !buffer_index;
-	return {{event_random_death, "random death"}, {event_concatenate, "concatenate"}};
+
+	EventLog log;
+	log.add(event_info("random death", event_info::kernel, event_random_death));
+	log.add(event_info("concatenate", event_info::kernel, event_concatenate));
+	return std::move(log.get());
 }

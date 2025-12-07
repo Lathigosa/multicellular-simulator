@@ -7,7 +7,7 @@
 
 #include "main.h"
 
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <vector>
 #include <string>
 #include <memory>
@@ -76,7 +76,7 @@
 		virtual const std::vector<std::string> get_dependencies() const;
 
 		/// Push a list of pointers to the dependencies to this sim unit:
-		error set_dependency_pointers(std::vector<simulation::sim_unit_template*> &list);
+		error set_dependency_pointers(std::vector<simulation::SimulationUnitTemplate*> &list);
 		error set_dependency_buffer_indices(std::vector<std::string> &list);
 		//error set_child_pointers(std::vector<sim_unit_template*> &list);
 
@@ -95,7 +95,7 @@
 
 		simulation::VBO_info get_VBO(unsigned int index);
 
-		std::vector<simulation::sim_unit_template*> dependency_pointers;		// The simulation units that this unit depends on.
+		std::vector<simulation::SimulationUnitTemplate*> dependency_pointers;		// The simulation units that this unit depends on.
 		std::vector<unsigned int> dependency_buffer_indices;					// The corresponding buffer indices (each entry in this list corresponds with an entry in "dependency_pointers".
 	};
 //}

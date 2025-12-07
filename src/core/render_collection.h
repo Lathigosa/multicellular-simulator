@@ -1,10 +1,7 @@
 #ifndef RENDER_COLLECTION_H_INCLUDED
 #define RENDER_COLLECTION_H_INCLUDED
 
-#include "main.h"
-
 #include "core/render_unit_template.h"
-
 #ifndef NO_UI
 #include <epoxy/gl.h>
 #include <epoxy/glx.h>		// TODO: see if I should switch to egl instead.
@@ -14,7 +11,7 @@
 
 #include "utilities/camera.h"
 
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <vector>
 #include <memory>
 

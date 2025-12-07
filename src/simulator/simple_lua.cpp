@@ -18,7 +18,7 @@ simple_lua::simple_lua(	cl::Platform & platform_cl,
 					cl::CommandQueue & command_queue,
 			        const std::string name,
                     lua_State* state
-                       ) : sim_unit_template(platform_cl, device_cl, context, command_queue),
+                       ) : SimulationUnitTemplate(platform_cl, device_cl, context, command_queue),
 							lua_name(name),
 							L(state)
 {
@@ -32,7 +32,7 @@ simple_lua::simple_lua(	cl::Platform & platform_cl,
 	{
 		// If core.registered_simulations[name] exists and is a table:
 		// Expose "this" pointer:
-		message_debug("Pushing this = " << this << " " << lua_name.c_str());
+		message_debug("Pushing this = ", this, " ", lua_name.c_str());
 		lua_pushlightuserdata(L, this);
 		lua_setfield(L, -2, "__sim_pointer");
 

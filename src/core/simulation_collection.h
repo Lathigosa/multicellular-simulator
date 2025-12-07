@@ -12,7 +12,7 @@
 #endif // NO_UI
 
 
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <vector>
 #include <memory>
 #include <mutex>
@@ -44,7 +44,7 @@ namespace simulation
 
         virtual ~simulation_world();
 
-        std::vector<std::unique_ptr<sim_unit_template>> simulation_units;
+        std::vector<std::unique_ptr<SimulationUnitTemplate>> simulation_units;
 
 		void init(bool use_gl_context = false);
 
@@ -75,7 +75,9 @@ namespace simulation
 		std::mutex m_callback;
 		std::condition_variable cv_callback;
 
-		std::vector<event_info> previous_events;		// For profiling.
+		//std::vector<event_info> previous_events;		// For profiling.
+		EventLog profiler_log;
+		void print_profiling_timings();
 
 		cl::Event event_finish;
 

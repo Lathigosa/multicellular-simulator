@@ -99,7 +99,7 @@ std::vector<event_info> intracellular_reactions::simulate_unit(float step_size)
 		kernel_membrane_physics.setArg(3, step_size*0.0001f / 8.0f);
 		queue.enqueueNDRangeKernel(kernel_membrane_physics, cl::NullRange, cl::NDRange((unsigned int)(wg_size*ceil(double(particle_count)/double(wg_size)))), cl::NullRange, nullptr, &event);
 
-		event_list.push_back({event, "iteration"});
+		event_list.push_back(event_info("iteration", event_info::kernel, event));
 
 		buffer_index = !buffer_index;
 	}
@@ -365,7 +365,7 @@ error intracellular_reactions::set_reactions(std::string reaction_definitions)
 
 
 
-const void intracellular_reactions::expose_lua_library(lua_State* L) const
+void intracellular_reactions::expose_lua_library(lua_State* L) const
 {
 	// Include the library to the lua state:
 	luaL_register(L, nullptr, lua::sim_intracellular_reactions::functions);

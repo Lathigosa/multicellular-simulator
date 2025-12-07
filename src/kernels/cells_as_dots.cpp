@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <CL/cl_gl.h>
 
 #include <glm/gtc/matrix_transform.hpp>

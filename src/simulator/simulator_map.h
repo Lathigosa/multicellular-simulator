@@ -17,7 +17,7 @@
 
 namespace simulation
 {
-	template<typename T> sim_unit_template* instantiate_simulator(
+	template<typename T> SimulationUnitTemplate* instantiate_simulator(
 			cl::Platform & platform_cl,
 			cl::Device & device_cl,
 			cl::Context & context,
@@ -34,7 +34,7 @@ namespace simulation
 		return T::dependencies();
 	}
 
-	typedef std::map<std::string, sim_unit_template*(*)(cl::Platform & platform_cl, 
+	typedef std::map<std::string, SimulationUnitTemplate*(*)(cl::Platform & platform_cl, 
 			cl::Device & device_cl,
 			cl::Context & context,
 			cl::CommandQueue & command_queue)> init_map_type;

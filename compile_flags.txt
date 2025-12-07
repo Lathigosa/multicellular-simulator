@@ -1,0 +1,5 @@
+-I./include
+-I./src
+-std=c++20
+-DMY_DEFINE=1
+-DFOO_BAR_TEST

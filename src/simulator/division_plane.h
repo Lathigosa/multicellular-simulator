@@ -46,7 +46,7 @@ namespace simulation
 
 			std::vector<event_info> simulate_unit(float step_size) override;
 
-			const void expose_lua_library(lua_State* L) const override;
+			void expose_lua_library(lua_State* L) const override;
 
 			
 		protected:

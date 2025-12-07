@@ -20,7 +20,7 @@ using namespace simulation;
 cell_global::cell_global(	cl::Platform & platform_cl,
 							cl::Device & device_cl,
 							cl::Context & context,
-							cl::CommandQueue & command_queue) : sim_unit_template(platform_cl, device_cl, context, command_queue)
+							cl::CommandQueue & command_queue) : SimulationUnitTemplate(platform_cl, device_cl, context, command_queue)
 {
 	// Load kernels:
 	kernel_random_deletion = get_kernel_from_file("cl_kernels/delete_particles_random.cl", "membrane_simulate_particles");
@@ -170,9 +170,12 @@ std::vector<event_info> cell_global::simulate_unit(float step_size)
 
 	// Switch the buffers:
 	buffer_index = !buffer_index;
-	return {{event_read_group_size, "read group size"},
-		{event_fill_new_cell_group_size, "fill new cell group size"},
-		{event_fill_copied_cells, "fill copied cells"}};
+
+	EventLog log;
+	log.add(event_info("CELL_GLOBAL: read group size", event_info::read_buffer, event_read_group_size));
+	log.add(event_info("CELL_GLOBAL: fill new cell group size", event_info::fill_buffer, event_fill_new_cell_group_size));
+	log.add(event_info("CELL_GLOBAL: fill copied cells", event_info::fill_buffer, event_fill_copied_cells));
+	return std::move(log.get());
 }
 
 error cell_global::signal_cell_reindex(const std::string sim_unit_name,
@@ -229,7 +232,7 @@ error cell_global::add_particles(unsigned int count)
 	return error::success;
 }
 
-const void cell_global::expose_lua_library(lua_State* L) const
+void cell_global::expose_lua_library(lua_State* L) const
 {
 	// Include the library to the lua state:
 	luaL_register(L, nullptr, lua::sim_cell::functions);

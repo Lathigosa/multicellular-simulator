@@ -1,15 +1,11 @@
 #ifndef DATA_KERNEL_H_INCLUDED
 #define DATA_KERNEL_H_INCLUDED
 
-#include "main.h"
-
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <vector>
 #include <string>
 #include <memory>
 #include <map>
-
-#include "core/data_variable.h"
 
 class data_kernel
 {

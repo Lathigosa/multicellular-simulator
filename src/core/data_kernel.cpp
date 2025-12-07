@@ -1,6 +1,9 @@
-#include "core/data_kernel.h"
+#include "main.h"
+
+#include "data_kernel.h"
 
 #include "utilities/load_file.h"
+
 
 data_kernel::data_kernel(cl::Platform & platform,
 						cl::Device & device,

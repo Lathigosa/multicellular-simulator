@@ -16,7 +16,7 @@
 namespace simulation
 {
 
-	class particle_template : public sim_unit_template
+	class particle_template : public SimulationUnitTemplate
 	{
 		public:
 			SIMULATOR_DEFINITION("template_particle_data", {"sim_cell"})
@@ -43,7 +43,7 @@ namespace simulation
 		                                 		cl::Buffer empty_cells,
 		                                 		unsigned int empty_count) override;
 
-			const void expose_lua_library(lua_State* L) const override;
+			void expose_lua_library(lua_State* L) const override;
 
 			// Own library functions:
 			error spawn_cells(unsigned int count, cl_float4* positions, cl_float4* velocities = nullptr);

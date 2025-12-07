@@ -97,17 +97,17 @@ namespace core
 	}
 
 
-	std::vector<simulation::sim_unit_template*> get_dependency_pointers (lua_State* L, const std::string name, std::vector<std::string> deps)
+	std::vector<simulation::SimulationUnitTemplate*> get_dependency_pointers (lua_State* L, const std::string name, std::vector<std::string> deps)
 	{
-		std::vector<simulation::sim_unit_template*> deps_pointers;
+		std::vector<simulation::SimulationUnitTemplate*> deps_pointers;
 		
 		for (int i=0; i<deps.size(); i++)
 		{
 			// Get pointer to sfo:
 			std::string lua_ref_name = "__" + deps.at(i) + "_pointer";
 			lua_getfield(L, LUA_REGISTRYINDEX, lua_ref_name.c_str());
-			simulation::sim_unit_template* ref =
-				reinterpret_cast<simulation::sim_unit_template*>(lua_touserdata(L, -1));
+			simulation::SimulationUnitTemplate* ref =
+				reinterpret_cast<simulation::SimulationUnitTemplate*>(lua_touserdata(L, -1));
 			lua_pop(L, 1);
 
 			if (ref == nullptr)
@@ -166,11 +166,11 @@ namespace core
 				deps.push_back(dep_name);
 				
 			}
-			std::vector<simulation::sim_unit_template*> deps_pointers = get_dependency_pointers(L, name, deps);
+			std::vector<simulation::SimulationUnitTemplate*> deps_pointers = get_dependency_pointers(L, name, deps);
 
 			// Add the new simulator:
 			sfo->world->simulation_units.push_back(
-					std::unique_ptr<simulation::sim_unit_template>(
+					std::unique_ptr<simulation::SimulationUnitTemplate>(
 								new simulation::simple_lua(
 											sfo->world->default_platform,
 											sfo->world->default_device,
@@ -194,7 +194,7 @@ namespace core
 		// Else, see if the requested simulator exists and add it:
 		if (simulation::standard_sim_units.count(name) > 0)
 		{
-			std::vector<simulation::sim_unit_template*> deps_pointers;
+			std::vector<simulation::SimulationUnitTemplate*> deps_pointers;
 
 			// Check dependencies (only if they are defined):
 			if (simulation::standard_sim_unit_dependencies.count(name) > 0)
@@ -217,8 +217,8 @@ namespace core
 							// Get the first entry, which should be a simulator_ref:
 							lua_getfield(L, -1, "pointer");
 								
-							simulation::sim_unit_template* ref =
-								reinterpret_cast<simulation::sim_unit_template*>(lua_touserdata(L, -1));
+							simulation::SimulationUnitTemplate* ref =
+								reinterpret_cast<simulation::SimulationUnitTemplate*>(lua_touserdata(L, -1));
 							lua_pop(L, 1);
 							
 							if (ref == nullptr)
@@ -241,8 +241,8 @@ namespace core
 						// Get pointer to sfo:
 						std::string lua_ref_name = "__" + deps.at(i) + "_pointer";
 						lua_getfield(L, LUA_REGISTRYINDEX, lua_ref_name.c_str());
-						simulation::sim_unit_template* ref =
-							reinterpret_cast<simulation::sim_unit_template*>(lua_touserdata(L, -1));
+						simulation::SimulationUnitTemplate* ref =
+							reinterpret_cast<simulation::SimulationUnitTemplate*>(lua_touserdata(L, -1));
 						lua_pop(L, 1);
 
 						if (ref == nullptr)
@@ -257,7 +257,7 @@ namespace core
 
 			// Add the new simulator:
 			sfo->world->simulation_units.push_back(
-					std::unique_ptr<simulation::sim_unit_template>(
+					std::unique_ptr<simulation::SimulationUnitTemplate>(
 								simulation::standard_sim_units.at(name)(
 											sfo->world->default_platform,
 											sfo->world->default_device,
@@ -339,7 +339,7 @@ namespace core
 		// See if the requested simulator exists and add it:
 		if (renderer::standard_render_units.count(name) > 0)
 		{
-			std::vector<simulation::sim_unit_template*> deps_pointers;
+			std::vector<simulation::SimulationUnitTemplate*> deps_pointers;
 
 			std::vector<std::string> dependency_buffer_indices = {};
 			
@@ -373,8 +373,8 @@ namespace core
 							{
 								lua_getfield(L, -1, "pointer");
 								
-								simulation::sim_unit_template* ref =
-									reinterpret_cast<simulation::sim_unit_template*>(lua_touserdata(L, -1));
+								simulation::SimulationUnitTemplate* ref =
+									reinterpret_cast<simulation::SimulationUnitTemplate*>(lua_touserdata(L, -1));
 								lua_pop(L, 1);
 								
 								if (ref == nullptr)
@@ -408,8 +408,8 @@ namespace core
 						// Get pointer to simulator dependencies:
 						std::string lua_ref_name = "__" + deps.at(i) + "_pointer";
 						lua_getfield(L, LUA_REGISTRYINDEX, lua_ref_name.c_str());
-						simulation::sim_unit_template* ref =
-							reinterpret_cast<simulation::sim_unit_template*>(lua_touserdata(L, -1));
+						simulation::SimulationUnitTemplate* ref =
+							reinterpret_cast<simulation::SimulationUnitTemplate*>(lua_touserdata(L, -1));
 						lua_pop(L, 1);
 
 						if (ref == nullptr)

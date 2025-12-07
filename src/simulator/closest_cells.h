@@ -25,7 +25,7 @@ namespace simulation
 	//	std::vector<unsigned short> connected_to;		// The particles that this membrane particle is connected to.
 	//};
 
-	class find_closest_cells : public sim_unit_template
+	class find_closest_cells : public SimulationUnitTemplate
 	{
 		public:
 			SIMULATOR_DEFINITION("sim_find_closest_cells", {"sim_simple_cell_physics"})
@@ -49,7 +49,7 @@ namespace simulation
 		                              			cl::Buffer copied_cells,
 		                              			unsigned int copied_count) override;
 
-			const void expose_lua_library(lua_State* L) const override;
+			void expose_lua_library(lua_State* L) const override;
 
 			// Own library functions:
 			error spawn_cells(unsigned int count, cl_float4* positions, cl_float4* velocities = nullptr);

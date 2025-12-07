@@ -28,7 +28,7 @@ const std::vector<std::string> render_unit_template::get_dependencies() const
 }
 
 error render_unit_template::set_dependency_pointers(
-						std::vector<sim_unit_template*> &list
+						std::vector<SimulationUnitTemplate*> &list
 						)
 {
 	dependency_pointers = list;
@@ -47,7 +47,7 @@ error render_unit_template::set_dependency_buffer_indices(std::vector<std::strin
 	for(unsigned int i=0; i<list.size(); i++)
 	{
 		dependency_buffer_indices.push_back(dependency_pointers[i]->get_buffer_index(list.at(i)));
-		message_debug("[" << i << "]: " << dependency_buffer_indices.back());
+		message_debug("[", i, "]: ", dependency_buffer_indices.back());
 	}
 	
 	return error::success;

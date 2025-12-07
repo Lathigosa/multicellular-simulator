@@ -1,0 +1,3 @@
+{
+  lua_cl_get_platform_id;
+};

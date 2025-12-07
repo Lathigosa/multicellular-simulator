@@ -5,6 +5,9 @@
 *   This file includes the standard strings.
 */
 
+#define GLM_ENABLE_EXPERIMENTAL
+
+#include <string>
 #include <iostream>
 
 enum struct error
@@ -23,10 +26,16 @@ enum struct error
 //#define CL_HPP_ENABLE_EXCEPTIONS
 
 #if defined(DEBUG) | defined(_DEBUG)
-#define message_debug(message) std::cout << message << std::endl;
+template<typename... Args>
+inline void message_debug(Args&&... args) {
+    (std::cout << ... << args) << std::endl; // fold expression (C++17+)
+}
 #else
-#define message_debug(message)
+template<typename... Args>
+inline void message_debug(Args&&... args) { }
 #endif
+
+
 
 // Comment out this line to remove warning messages:
 #define NOTIFY_MSG

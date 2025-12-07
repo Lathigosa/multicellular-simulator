@@ -24,12 +24,23 @@ Make sure that all dependencies are installed. This includes:
 - epoxy/gl.h              (For Debian-based systems: `sudo apt-get install libepoxy-dev`)
 - gtkmm                   (For Debian-based systems: `sudo apt-get install libgtkmm-3.0-dev`)
 - glm                     (For Debian-based systems: `sudo apt-get install libglm-dev`)
-- CL/cl.hpp or CL/cl2.hpp (For Debian-based systems: `sudo apt-get install opencl-headers`)
+- CL/cl.hpp or CL/opencl.hpp (For Debian-based systems: `sudo apt-get install opencl-headers`)
 - libOpenCL.so            (For Debian-based systems: `sudo apt-get install ocl-icd-opencl-dev`)
-- lGLEW                   (For Debian-based systems: `sudo apt-get install libglew-dev`)
 - LuaJIT 5.1
 
 - pybind11/pybind11.h		  (`usr/bin/python3 -m pip install pybind11` (requires pip))
 
+### On Fedora:
+```sh
+sudo dnf install \
+    ocl-icd-devel \
+    libepoxy-devel \
+    glm-devel \
+    gtkmm30-devel \
+    luajit-devel \
+    python3-devel \
+    python3-pybind11
+
+```
 
 Once these are all installed, simply run `make` to compile the project. Use `make clean` if previous builds cause interference.

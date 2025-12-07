@@ -3,13 +3,13 @@
 // !! Makes use of "sort_particles_in_3d_grid.cl" !! //
 
 kernel void cell_hookian_repel(global float4* out_position,
-										global float4* out_velocity,
-										global const float4* in_position,
-										global const float4* in_velocity,
-										global const uint* in_grid,				// Used for optimization.
-										global const uint* in_grid_counter,		// Used for optimization.
-										private int count,
-										private float timestep)	// TODO: possibly replace "float4* normal" with "half* normal" and use vload_half4(index, normal) to access it.
+								global float4* out_velocity,
+								global const float4* in_position,
+								global const float4* in_velocity,
+								global const uint* in_grid,				// Used for optimization.
+								global const uint* in_grid_counter,		// Used for optimization.
+								private int count,
+								private float timestep)	// TODO: possibly replace "float4* normal" with "half* normal" and use vload_half4(index, normal) to access it.
 {
 	if(get_global_id(0) >= count)
 		return;

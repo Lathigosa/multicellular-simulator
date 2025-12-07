@@ -40,8 +40,6 @@ gui_window::gui_window() :  main_layout(),
     planes.push_back(make_unique<gui_plane_cell_view>(sfo));
     planes.push_back(make_unique<gui_plane_neural_network_view>());
 
-	
-
     // Cycle through all planes to get the name and image:
     for(unsigned int a=0; a<planes.size(); a++)
     {

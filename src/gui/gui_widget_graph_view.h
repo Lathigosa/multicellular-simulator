@@ -5,8 +5,6 @@
 
 //#include "utilities/queue.h"
 
-//#define GLEW_STATIC
-//#include <GL/glew.h> // install libgl by running "sudo apt-get install libgl-dev" or similar.
 #include <epoxy/gl.h>
 
 #include <gtkmm/glarea.h>

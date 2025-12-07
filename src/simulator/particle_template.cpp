@@ -17,7 +17,7 @@ using namespace simulation;
 particle_template::particle_template(	cl::Platform & platform_cl,
 					cl::Device & device_cl,
 					cl::Context & context,
-					cl::CommandQueue & command_queue) : sim_unit_template(platform_cl, device_cl, context, command_queue)
+					cl::CommandQueue & command_queue) : SimulationUnitTemplate(platform_cl, device_cl, context, command_queue)
 {
 	kernel_append_buffer = get_kernel_from_file("cl_kernels/append_buffer.cl", "append_buffer");
 	delete_particles_float4 = get_kernel_from_file("cl_kernels/delete_particles.cl", "delete_particles_float4");
@@ -133,7 +133,7 @@ unsigned int particle_template::create_particle_double_buffer(std::string name, 
 	return new_buffer_index;
 }
 
-const void particle_template::expose_lua_library(lua_State* L) const
+void particle_template::expose_lua_library(lua_State* L) const
 {
 	// Include the library to the table at the top of the stack:
 	luaL_register(L, nullptr, lua::sim_membrane::functions);

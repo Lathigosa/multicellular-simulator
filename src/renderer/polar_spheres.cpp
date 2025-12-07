@@ -11,67 +11,15 @@ using namespace renderer;
 
 #include "gui/shader_tools.h"
 
-const char * const source_vertex_points = "#version 330 core\n"
-"attribute vec3 coordinate;"
-"attribute vec3 velocity;"
-"attribute vec3 division_plane;"
-"attribute float radius;"
-"varying vec4 f_color;"
-"varying vec4 division_axis;"
-"varying vec4 v1;"
-"uniform mat4 MVP_matrix;"
-"uniform mat4 MV_matrix;"
-"uniform mat4 P_matrix;"
-"uniform float screen_width;"
+const char source_vertex_points[] = {
+	#embed "shaders/polar_spheres.vert"
+	, '\0'
+};
 
-"void main(void) {"
-	"vec4 eye_position = MV_matrix * vec4(coordinate, 1.0);"
-	"vec4 projection = P_matrix * vec4(radius, radius, eye_position.z, eye_position.w);"
-	"gl_Position = P_matrix * eye_position;"
-	"float screen_z = (-gl_Position.z) * 1.0;"
-	//"gl_PointSize = screen_z * 1.0;"
-	"gl_PointSize = screen_width * projection.x / projection.w;"
-	"f_color = vec4(screen_z / 200.0 + 0.5, screen_z * 0.0005 + 1.0, 1.0, 1.0);"
-	//"f_color = vec4(min(gl_VertexID / 16.0 + 0.1, 1.0), min(gl_VertexID / 256.0 + 0.1, 1.0), min(gl_VertexID / 256.0 / 256.0 + 0.1, 1.0), 1.0);"
-	//"vec4 eye_pos = MV_matrix * vec4(coordinate, 1.0);"
-	"v1 = MV_matrix * vec4(velocity, 0.0f);"
-	"division_axis = MV_matrix * vec4(division_plane, 0.0f);"
-"}";
-
-const char * const source_fragment_points = "#version 330 core\n"
-"varying vec4 f_color;"
-"varying vec4 v1;"
-"varying vec4 division_axis;"
-
-"void main(void) {"
-	"if(length(gl_PointCoord - vec2(0.5, 0.5)) > 0.5)"
-		"discard;"
-
-	//"vec3 division_axis = vec3(0.0f, 0.0f, 1.0f);"
-
-	"float polarity_angle_size = length(v1.xyz);"
-	"if(polarity_angle_size == 0.0f)"
-		"discard;"
-	"vec3 normalized_v1 = normalize(v1.xyz);"
-
-	"vec2 center_coord = 2.0f*vec2(gl_PointCoord.x - 0.5, - gl_PointCoord.y + 0.5);"
-
-	"vec3 fragment_coord = vec3(center_coord, sqrt(1.0 - center_coord.x*center_coord.x - center_coord.y*center_coord.y));"
-	"float polarity_intensity = min(dot(fragment_coord, normalized_v1), 1.0f);"
-	"float polarity_intensity_back = min(dot(vec3(fragment_coord.xy, -fragment_coord.z), normalized_v1), 1.0f);"
-	"if(polarity_intensity < cos(polarity_angle_size) && polarity_intensity_back < cos(polarity_angle_size) && abs(dot(division_axis.xyz, fragment_coord)) > 0.01f)"
-		"discard;"
-
-	"float modifier = 1.0f;"
-
-	"if(polarity_intensity < cos(polarity_angle_size))"
-		"modifier = 0.5f;"
-
-	"if(abs(dot(division_axis.xyz, fragment_coord)) <= 0.01f)"
-		"modifier = 20.0f;"
-	
-    "gl_FragColor = (1.0f - 1.0f*length(gl_PointCoord - vec2(0.5, 0.5))) * modifier * f_color;"
-"}";
+const char source_fragment_points[] = {
+	#embed "shaders/polar_spheres.frag"
+	, '\0'
+};
 
 polar_spheres::polar_spheres() : render_unit_template()
 {

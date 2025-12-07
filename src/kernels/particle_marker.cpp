@@ -74,5 +74,8 @@ std::vector<event_info> ParticleMarker::run(const cl::Buffer& marked_particle_in
 	
 	m_command_queue.enqueueNDRangeKernel(kernel_concatenate, cl::NullRange, cl::NDRange(ceil(double(particle_count)/256.0)), cl::NullRange, nullptr, &event_concatenate);
 
-	return {{event_random_marker, "CELL_SYSTEM::DELETION random death"}, {event_concatenate, "CELL_SYSTEM::DELETION concatenate"}};
+	EventLog log;
+	log.add(event_info("PARTICLE_MARKER: random_marker", event_info::kernel, event_random_marker));
+	log.add(event_info("PARTICLE_MARKER: concatenate", event_info::kernel, event_concatenate));
+	return std::move(log.get());
 }

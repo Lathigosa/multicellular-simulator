@@ -1,9 +1,6 @@
-#include "cell_simulator/cell_system.h"
+#include "cell_system.h"
 
-#include <stdexcept>
-#include <CL/cl2.hpp>
-#include <memory>
-#include <algorithm>
+#include <CL/opencl.hpp>
 #include <cctype>
 
 
@@ -31,7 +28,6 @@ CellSystem::CellSystem(cl::Platform & platform,
 	m_velocity_1.append(m_command_queue, {particle_1});
 	m_radius_1.append(m_command_queue, {1.0f});
 	m_command_queue.finish();
-		
 }
 
 CellSystem::~CellSystem() { }
@@ -45,49 +41,34 @@ void CellSystem::build()
 	//m_position_1.
 }
 
+std::vector<event_info> CellSystem::calculatePhysicsStep() {
+    return kernel_physics.run(
+		m_position_1,
+		m_velocity_1,
+		m_velocity_1,
+		m_radius_1,
+		m_position_1,
+		m_radius_1,
+		particle_count
+	);
+}
+
+std::vector<event_info> CellSystem::markParticlesForDivisionOrDeletion() {
+	return kernel_particle_marker.run(
+		new_cell_indices,
+		new_cell_group_size,
+		copied_cells,
+		particle_count
+	);
+}
+
 std::vector<event_info> CellSystem::run()
 {
-	std::vector<event_info> info1 = kernel_physics.run(m_position_1,
-	                                                   m_velocity_1,
-	                                                   m_velocity_1,
-	                                                   m_radius_1,
-	                                                   m_position_1,
-	                                                   m_radius_1,
-	                                                   particle_count);
-
-	// Mark cells for duplication:
-	std::vector<event_info> info2 = kernel_particle_marker.run(new_cell_indices,
-	                                                           new_cell_group_size,
-	                                                           copied_cells,
-	                                                           particle_count);
-
-	//std::vector<event_info> info3 = kernel_particle_marker.run(deleted_cell_indices,
-	//                                                           deleted_cell_group_size,
-	//                                                           empty_cells,
-	//                                                           particle_count);
-
-	
-	
-	std::vector<event_info> info = finalizeDuplicationDeletion();
-
-	std::vector<event_info> all_events;
-
-	for(unsigned int i=0; i<info1.size(); i++)
-	{
-		all_events.push_back(info1.at(i));
-	}
-
-	for(unsigned int i=0; i<info2.size(); i++)
-	{
-		all_events.push_back(info2.at(i));
-	}
-
-	for(unsigned int i=0; i<info.size(); i++)
-	{
-		all_events.push_back(info.at(i));
-	}
-
-	return all_events;
+	EventLog log;
+	log.add(calculatePhysicsStep());
+	log.add(markParticlesForDivisionOrDeletion());
+	log.add(finalizeDuplicationDeletion());
+	return std::move(log.get());
 }
 
 void CellSystem::initialize_render()

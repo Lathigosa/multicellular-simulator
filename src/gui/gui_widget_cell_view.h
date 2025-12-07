@@ -4,7 +4,7 @@
 #include <epoxy/gl.h>
 
 #include "main.h"
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <memory>
 
 

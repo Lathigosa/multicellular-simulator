@@ -18,7 +18,7 @@ using namespace simulation;
 division_random::division_random(	cl::Platform & platform_cl,
 							cl::Device & device_cl,
 							cl::Context & context,
-							cl::CommandQueue & command_queue) : sim_unit_template(platform_cl, device_cl, context, command_queue)
+							cl::CommandQueue & command_queue) : SimulationUnitTemplate(platform_cl, device_cl, context, command_queue)
 {
 	kernel_random_division = get_kernel_from_file("cl_kernels/sim_cell_division.cl", "membrane_simulate_particles");
 
@@ -157,7 +157,11 @@ std::vector<event_info> division_random::simulate_unit(float step_size)
 
 	// Switch the buffers:
 	buffer_index = !buffer_index;
-	return {{event_random_division, "random division"}, {event_concatenate, "concatenate"}};
+
+	EventLog log;
+	log.add(event_info("MEMBRANE: random division", event_info::kernel, event_random_division));
+	log.add(event_info("MEMBRANE: concatenate", event_info::kernel, event_concatenate));
+	return std::move(log.get());
 }
 
 error division_random::signal_cell_reindex(const std::string sim_unit_name,

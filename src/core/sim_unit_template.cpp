@@ -6,7 +6,7 @@
 
 using namespace simulation;
 
-sim_unit_template::sim_unit_template(cl::Platform & platform_cl,
+SimulationUnitTemplate::SimulationUnitTemplate(cl::Platform & platform_cl,
 									cl::Device & device_cl,
 									cl::Context & context,
 									cl::CommandQueue & command_queue) : platform(platform_cl),
@@ -17,59 +17,59 @@ sim_unit_template::sim_unit_template(cl::Platform & platform_cl,
 
 }
 
-sim_unit_template::~sim_unit_template()
+SimulationUnitTemplate::~SimulationUnitTemplate()
 {
 	//dtor
 }
 
-void sim_unit_template::init()
+void SimulationUnitTemplate::init()
 {
 	initialize_buffers();
 }
 
-error sim_unit_template::initialize_buffers()
+error SimulationUnitTemplate::initialize_buffers()
 {
 	return error::success;
 }
 
-const std::string sim_unit_template::get_name() const
+const std::string SimulationUnitTemplate::get_name() const
 {
 	return "undefined";
 }
 
-unsigned int sim_unit_template::get_buffer_index(const std::string name) const
+unsigned int SimulationUnitTemplate::get_buffer_index(const std::string name) const
 {
 	return buffer_indices.at(name);
 }
 
-unsigned int sim_unit_template::get_buffer_size(unsigned int index, bool double_buffer) const
+unsigned int SimulationUnitTemplate::get_buffer_size(unsigned int index, bool double_buffer) const
 {
 	return 0;
 }
 
-const std::vector<std::string> sim_unit_template::get_dependencies() const
+const std::vector<std::string> SimulationUnitTemplate::get_dependencies() const
 {
 	return {};
 }
 
-error sim_unit_template::set_dependency_pointers(
-						std::vector<sim_unit_template*> &list
+error SimulationUnitTemplate::set_dependency_pointers(
+						std::vector<SimulationUnitTemplate*> &list
 						)
 {
 	dependency_pointers = list;
 	return error::success;
 }
 
-error sim_unit_template::set_child_pointers(
-						std::vector<sim_unit_template*> &list
+error SimulationUnitTemplate::set_child_pointers(
+						std::vector<SimulationUnitTemplate*> &list
 						)
 {
 	dependency_child_pointers = list;
 	return error::success;
 }
 
-error sim_unit_template::add_child_pointer(
-						sim_unit_template* unit
+error SimulationUnitTemplate::add_child_pointer(
+						SimulationUnitTemplate* unit
 						)
 {
 	dependency_child_pointers.push_back(unit);
@@ -77,30 +77,30 @@ error sim_unit_template::add_child_pointer(
 }
 
 #ifndef NO_UI
-error sim_unit_template::initialize_buffers(std::vector<GLuint> from_gl_buffer)
+error SimulationUnitTemplate::initialize_buffers(std::vector<GLuint> from_gl_buffer)
 {
 	return error::success;
 }
 #endif
 
-cl::Buffer sim_unit_template::get_buffer(unsigned int index, bool double_buffer)
+cl::Buffer SimulationUnitTemplate::get_buffer(unsigned int index, bool double_buffer)
 {
 	// TODO: ERROR if more than count!
 	//return 0;
 	return buffers.at(index).buffer[double_buffer];
 }
 
-unsigned int sim_unit_template::get_buffer_entry_size(unsigned int index) const
+unsigned int SimulationUnitTemplate::get_buffer_entry_size(unsigned int index) const
 {
 	return buffers.at(index).entry_size;
 }
 
-error sim_unit_template::organize_unit()
+error SimulationUnitTemplate::organize_unit()
 {
 	return error::undefined_function;
 }
 
-std::vector<event_info> sim_unit_template::simulate(float step_size)
+std::vector<event_info> SimulationUnitTemplate::simulate(float step_size)
 {
 	VBO_refresh = true;
 	for(int i=0; i<VBO_list.size(); i++)
@@ -121,25 +121,25 @@ std::vector<event_info> sim_unit_template::simulate(float step_size)
 	return info;
 }
 
-std::vector<event_info> sim_unit_template::simulate_unit(float step_size)
+std::vector<event_info> SimulationUnitTemplate::simulate_unit(float step_size)
 {
 	//TODO: throw error: undefined function!
 	return {};
 }
 
-error sim_unit_template::function()
+error SimulationUnitTemplate::function()
 {
 	return error::undefined_function;
 }
 
-error sim_unit_template::signal_buffer_rearrange(const std::string sim_unit_name,
+error SimulationUnitTemplate::signal_buffer_rearrange(const std::string sim_unit_name,
 												unsigned int buffer_index,
 												buffer_rearrange_info info)
 {
 	return error::undefined_function;
 }
 
-error sim_unit_template::signal_cell_reindex(const std::string sim_unit_name,
+error SimulationUnitTemplate::signal_cell_reindex(const std::string sim_unit_name,
 											cl::Buffer empty_cells,
 		                              		cl::Buffer copied_cells,
 		                              		unsigned int copied_count)
@@ -147,14 +147,14 @@ error sim_unit_template::signal_cell_reindex(const std::string sim_unit_name,
 	return error::undefined_function;
 }
 
-error sim_unit_template::signal_particle_remove(const std::string sim_unit_name,
+error SimulationUnitTemplate::signal_particle_remove(const std::string sim_unit_name,
 		                                 		cl::Buffer empty_cells,
 		                                 		unsigned int empty_count)
 {
 	return error::undefined_function;
 }
 
-void sim_unit_template::signal_buffer_insert(const std::string sim_unit_name,
+void SimulationUnitTemplate::signal_buffer_insert(const std::string sim_unit_name,
 		                                  unsigned int buffer_index,
 		                                  unsigned int range_start,
 		                                  unsigned int count)
@@ -163,7 +163,7 @@ void sim_unit_template::signal_buffer_insert(const std::string sim_unit_name,
 }
 
 //deprecated:
-GLuint sim_unit_template::get_buffer_as_VBO(unsigned int index, bool double_buffer)
+GLuint SimulationUnitTemplate::get_buffer_as_VBO(unsigned int index, bool double_buffer)
 {
 	// Resize array when necessary:
 	if (index >= VBO_list.size())
@@ -204,7 +204,7 @@ GLuint sim_unit_template::get_buffer_as_VBO(unsigned int index, bool double_buff
 	return VBO_list.at(index).VBO;
 }
 
-VBO_info sim_unit_template::get_buffer_as_VBO_info(unsigned int index, bool double_buffer)
+VBO_info SimulationUnitTemplate::get_buffer_as_VBO_info(unsigned int index, bool double_buffer)
 {
 	// Resize array when necessary:
 	if (index >= VBO_list.size())
@@ -265,32 +265,32 @@ VBO_info sim_unit_template::get_buffer_as_VBO_info(unsigned int index, bool doub
 	return VBO_list.at(index);
 }
 
-const void sim_unit_template::expose_lua_library(lua_State* L) const
+void SimulationUnitTemplate::expose_lua_library(lua_State* L) const
 {
 	// No library to include.
 }
 
-const cl::Platform sim_unit_template::get_platform() const
+const cl::Platform SimulationUnitTemplate::get_platform() const
 {
 	return platform;
 }
 
-const cl::Device sim_unit_template::get_device() const
+const cl::Device SimulationUnitTemplate::get_device() const
 {
 	return device;
 }
 
-const cl::Context sim_unit_template::get_context() const
+const cl::Context SimulationUnitTemplate::get_context() const
 {
 	return opencl_context;
 }
 
-const cl::CommandQueue sim_unit_template::get_command_queue() const
+const cl::CommandQueue SimulationUnitTemplate::get_command_queue() const
 {
 	return queue;
 }
 
-int sim_unit_template::get_custom_int(const std::string key) const
+int SimulationUnitTemplate::get_custom_int(const std::string key) const
 {
 	auto pos = custom_data.find(key);
 	if (pos == custom_data.end()) {
@@ -306,7 +306,7 @@ int sim_unit_template::get_custom_int(const std::string key) const
 	return 0;
 }
 
-float sim_unit_template::get_custom_float(const std::string key) const
+float SimulationUnitTemplate::get_custom_float(const std::string key) const
 {
 	auto pos = custom_data.find(key);
 	if (pos == custom_data.end()) {
@@ -322,7 +322,7 @@ float sim_unit_template::get_custom_float(const std::string key) const
 	return 0.0f;
 }
 
-unsigned int sim_unit_template::get_custom_uint(const std::string key) const
+unsigned int SimulationUnitTemplate::get_custom_uint(const std::string key) const
 {
 	auto pos = custom_data.find(key);
 	if (pos == custom_data.end()) {
@@ -338,7 +338,7 @@ unsigned int sim_unit_template::get_custom_uint(const std::string key) const
 	return 0;
 }
 
-void sim_unit_template::set_custom_data(const std::string key, int value)
+void SimulationUnitTemplate::set_custom_data(const std::string key, int value)
 {
 	custom_datum data;
 	data.data_type = custom_datum::c_int;
@@ -346,7 +346,7 @@ void sim_unit_template::set_custom_data(const std::string key, int value)
 	custom_data.insert(std::pair<std::string,custom_datum>(key, data));
 }
 
-void sim_unit_template::set_custom_data(const std::string key, float value)
+void SimulationUnitTemplate::set_custom_data(const std::string key, float value)
 {
 	custom_datum data;
 	data.data_type = custom_datum::c_float;
@@ -354,7 +354,7 @@ void sim_unit_template::set_custom_data(const std::string key, float value)
 	custom_data.insert(std::pair<std::string,custom_datum>(key, data));
 }
 
-void sim_unit_template::set_custom_data(const std::string key, unsigned int value)
+void SimulationUnitTemplate::set_custom_data(const std::string key, unsigned int value)
 {
 	custom_datum data;
 	data.data_type = custom_datum::c_uint;
@@ -362,7 +362,7 @@ void sim_unit_template::set_custom_data(const std::string key, unsigned int valu
 	custom_data.insert(std::pair<std::string,custom_datum>(key, data));
 }
 
-unsigned int sim_unit_template::create_double_buffer(std::string name, unsigned int entry_size, unsigned int entry_count, unsigned int max_count)
+unsigned int SimulationUnitTemplate::create_double_buffer(std::string name, unsigned int entry_size, unsigned int entry_count, unsigned int max_count)
 {
 	double_buffer new_buffer;
 	new_buffer.buffer[0] = cl::Buffer(opencl_context, CL_MEM_READ_WRITE, entry_size*max_count);
@@ -375,7 +375,7 @@ unsigned int sim_unit_template::create_double_buffer(std::string name, unsigned 
 	return buffers.size() - 1;
 }
 
-cl::Kernel sim_unit_template::get_kernel_from_file(const char* const file_name, const char* const kernel_name) const
+cl::Kernel SimulationUnitTemplate::get_kernel_from_file(const char* const file_name, const char* const kernel_name) const
 {
 	std::string kernel_code = load_file(file_name);
 	cl::Program::Sources sources_append_buffer;

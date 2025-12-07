@@ -6,6 +6,8 @@
 //#include "core/sim_unit_template.h"
 //#include "core/render_unit_template.h"
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <glm/glm.hpp>
 #include <vector>
 

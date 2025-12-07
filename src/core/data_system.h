@@ -7,7 +7,7 @@
 
 #include "main.h"
 
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <vector>
 #include <string>
 #include <memory>
@@ -17,21 +17,21 @@
 
 
 
-class data_system
+class DataSystem
 {
 public:
-	data_system(cl::Platform & platform,
+	DataSystem(cl::Platform & platform,
 				cl::Device & device,
 				cl::Context & context,
 				cl::CommandQueue & command_queue);
-	data_system(const data_system& from) = delete;			// TODO: add copy and assignment?
-	data_system& operator=(const data_system&) = delete;
+	DataSystem(const DataSystem& from) = delete;			// TODO: add copy and assignment?
+	DataSystem& operator=(const DataSystem&) = delete;
 
 	
 
 	void build();
 
-	virtual ~data_system();
+	virtual ~DataSystem();
 
 	cl::Platform& getPlatform();
 	cl::Device& getDevice();

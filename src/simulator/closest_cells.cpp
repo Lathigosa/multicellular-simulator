@@ -17,7 +17,7 @@ using namespace simulation;
 find_closest_cells::find_closest_cells(	cl::Platform & platform_cl,
 					cl::Device & device_cl,
 					cl::Context & context,
-					cl::CommandQueue & command_queue) : sim_unit_template(platform_cl, device_cl, context, command_queue)
+					cl::CommandQueue & command_queue) : SimulationUnitTemplate(platform_cl, device_cl, context, command_queue)
 {
 	std::string kernel_code = load_file("cl_kernels/find_16_closest_points.cl");
 						
@@ -188,7 +188,9 @@ std::vector<event_info> find_closest_cells::simulate_unit(float step_size)
 	// Switch the buffers:
 	buffer_index = !buffer_index;
 
-	return {{event, "closest_cell_sorting"}};
+	EventLog log;
+	log.add(event_info("FIND_CLOSEST_CELLS: sort particles", event_info::kernel, event));
+	return std::move(log.get());
 }
 
 error find_closest_cells::signal_cell_reindex(const std::string sim_unit_name,
@@ -251,7 +253,7 @@ error find_closest_cells::spawn_cells(unsigned int count, cl_float4* positions, 
 	return error::success;
 }
 
-const void find_closest_cells::expose_lua_library(lua_State* L) const
+void find_closest_cells::expose_lua_library(lua_State* L) const
 {
 	// Include the library to the lua state:
 	//luaL_register(L, "sim_membrane", lua::sim_membrane::functions);

@@ -112,36 +112,12 @@ void CL_CALLBACK event_profiling_callback(cl_event event, cl_int, void* pUserDat
 
 void simulation_world::simulate_all()
 {
-	if(has_initialized == false)
-	{
-		message_debug("ERROR! Not yet initialized simulation_world.");
-		return;
-	}
-	//current_frame++;
-	//message_debug("Current frame: " << current_frame);
-	
+	if (!has_initialized) return message_debug("ERROR! Not yet initialized simulation_world.");
 
-	for(int a=0; a<simulation_units.size(); a++)
-	{
-		std::vector<event_info> info = simulation_units[a]->simulate(0.1f);
-		for(unsigned int i=0; i<info.size(); i++)
-		{
-			previous_events.push_back(info.at(i));
-			//cl::Event event = info.at(i).event;
-			//cl_int err;
-			//message_debug(info.at(i).name << ": " << event.getProfilingInfo<CL_PROFILING_COMMAND_END>(&err) - event.getProfilingInfo<CL_PROFILING_COMMAND_START>());
-			//message_debug(err);
-			//TODO: we get error CL_PROFILING_INFO_NOT_AVAILABLE because the event has not yet finished! Call this function later.
-		}
-	}
+	for(auto& unit : simulation_units) profiler_log.add(unit->simulate(0.1f));
 
 	// TEST: Simulate cell_system:
-
-	std::vector<event_info> info = cell_system->run();
-	for(unsigned int i=0; i<info.size(); i++)
-	{
-		previous_events.push_back(info.at(i));
-	}
+	// profiler_log.add(cell_system->run());
 }
 
 void CL_CALLBACK EventCallback(cl_event event, cl_int, void* pUserData)
@@ -150,62 +126,46 @@ void CL_CALLBACK EventCallback(cl_event event, cl_int, void* pUserData)
 	self->event_callback();
 }
 
-void simulation_world::event_callback()
-{
+void simulation_world::print_profiling_timings() {
 	// Profiling:
 	std::map<const char*, cl_ulong> timings;
-	for(unsigned int i=0; i<previous_events.size(); i++)
+	for(auto& entry : profiler_log.events)
 	{
-		cl::Event event = previous_events.at(i).event;
+		cl::Event event = entry.event;
 		cl_ulong duration = event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
 		
 		cl_int err;
-		timings[previous_events.at(i).name] += duration;
-		//message_debug(previous_events.at(i).name << ": " << event.getProfilingInfo<CL_PROFILING_COMMAND_END>(&err) - event.getProfilingInfo<CL_PROFILING_COMMAND_START>());
-		//message_debug(err);
-		//TODO: we get error CL_PROFILING_INFO_NOT_AVAILABLE because the event has not yet finished! Call this function later.
-		
+		timings[entry.name] += duration;
 	}
 
 	// Get total time and calculate percents of load per key:
 	cl_ulong total_time = 0;
-	for (auto const& i : timings)
-		total_time += i.second;
+	for (auto const& i : timings) total_time += i.second;
 	
 	for (auto const& i : timings)
-		message_debug(std::to_string((float)i.second / (float)total_time * 100.0f) << "%, " << std::to_string(i.second) << ": " << i.first);
-	
-	
+		message_debug(std::to_string((float)i.second / (float)total_time * 100.0f), "%, ",  std::to_string(i.second),  ": ", i.first);
 	
 	{
 		std::unique_lock<std::mutex> lk(m_callback);
 
 		// Important to clear the list, else it grows too large:
-		previous_events.clear();
+		profiler_log.events.clear();
 		
 		auto previous_time = measured_time;
 		measured_time = std::chrono::high_resolution_clock::now();
 		long nanoseconds =  std::chrono::duration_cast<std::chrono::nanoseconds>(measured_time-previous_time).count();
-		message_debug("measured rate: " << 64.0/(double)nanoseconds*1000000000.0 << "Hz | time: " << nanoseconds << "ns");
-		//framerate_counter++;
-		//summed_frequency += 64.0/(double)nanoseconds*1000000000.0;
-		//message_debug("average rate: " << summed_frequency / (double)framerate_counter << "Hz");
+		message_debug("measured rate: ", 64.0/(double)nanoseconds*1000000000.0, "Hz | time: ", nanoseconds, "ns");
 	}
+}
 
-	
-	
+void simulation_world::event_callback()
+{
+	print_profiling_timings();
+
 	// Initiate next batch:
-	if(running == true)
-	{
-		for(int i=0; i<64; i++)
-		{
-			simulate_all();
-			
-			
-		}
-		//std::chrono::milliseconds timespan(100);
-		//std::this_thread::sleep_for(timespan);
-		
+	if(running) {
+		for(int i=0; i<64; i++) simulate_all();
+
 		//TODO: find out if the next line is thread-safe?
 		callbacks_running--;
 		flush();
@@ -271,9 +231,9 @@ simulation_world::~simulation_world()
 
 	if(cv_callback.wait_for(lk, std::chrono::milliseconds(2000), [this]{return callbacks_running == 0;})) 
 	{
-		message_debug("Thread finished waiting. i == " << callbacks_running);
+		message_debug("Thread finished waiting. i == ", callbacks_running);
 	} else {
-        message_debug("Thread timed out. i == " << callbacks_running);
+        message_debug("Thread timed out. i == ", callbacks_running);
 	}
 
 	// TODO: make sure it does not time-out!

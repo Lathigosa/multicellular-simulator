@@ -63,7 +63,7 @@ namespace sim_cell
 			const double y = luaL_checknumber(L, -2);
 			const double z = luaL_checknumber(L, -1);
 
-			message_debug("sim_cell.place_cell(" << x << ", " << y << ", " << z << ").");
+			message_debug("sim_cell.place_cell(", x, ", ", y, ", ", z, ").");
 
 			lua_pop(L, 3);
 

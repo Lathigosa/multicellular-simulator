@@ -64,7 +64,7 @@ std::vector<event_info> division_after_concentration_treshold::simulate_unit(flo
 
 	countdown = 64;
 
-	message_debug("Size = " << particle_count);
+	message_debug("Size = ", particle_count);
 
 	cl::Event event_random_division;
 	cl::Event event_concatenate;
@@ -91,7 +91,11 @@ std::vector<event_info> division_after_concentration_treshold::simulate_unit(flo
 
 	// Switch the buffers:
 	buffer_index = !buffer_index;
-	return {{event_random_division, "random division"}, {event_concatenate, "concatenate"}};
+
+	EventLog log;
+	log.add(event_info("DIVISION_AFTER_CONCENTRATION_THRESHOLD: random division", event_info::kernel, event_random_division));
+	log.add(event_info("DIVISION_AFTER_CONCENTRATION_THRESHOLD: concatenate", event_info::kernel, event_concatenate));
+	return std::move(log.get());
 }
 
 void division_after_concentration_treshold::signal_buffer_insert(const std::string sim_unit_name,

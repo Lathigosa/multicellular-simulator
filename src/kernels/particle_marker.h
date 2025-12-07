@@ -6,7 +6,7 @@
 #include "core/data_kernel.h"
 //#include "particle_template.h"
 
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 
 #include <vector>
 #include <string>

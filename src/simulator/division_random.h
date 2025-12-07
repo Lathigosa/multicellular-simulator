@@ -16,7 +16,7 @@
 namespace simulation {
 
 	/// Class in charge of simulating each cell:
-    class division_random : public sim_unit_template
+    class division_random : public SimulationUnitTemplate
 	{
 		public:
 			SIMULATOR_DEFINITION("sim_division_random", {"sim_cell"})

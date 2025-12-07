@@ -4,11 +4,7 @@
 
 #include <ctype.h>
 
-//#define GLEW_STATIC
-//#include <GL/glew.h> // install libgl by running "sudo apt-get install libgl-dev" or similar.
-
-
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 
 #include <stdlib.h>
 #include <iostream>

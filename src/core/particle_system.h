@@ -1,3 +1,16 @@
+/**
+ * @file particle_system.h
+ * @brief A GPU-based particle system whose particles can duplicate or delete themselves.
+ *
+ * This file defines the ParticleSystem class, which extends the `data_system` base class
+ * and manages a collection of particles on the GPU. Particles can dynamically duplicate
+ * or delete themselves during simulation, with operations executed efficiently using
+ * OpenCL kernels.
+ *
+ * @author Nathan Boogerd
+ * @date 2025-12-05
+ */
+
 #ifndef PARTICLE_SYSTEM_H_INCLUDED
 #define PARTICLE_SYSTEM_H_INCLUDED
 
@@ -5,15 +18,8 @@
 #include <epoxy/gl.h>
 #endif // NO_UI
 
-#include "main.h"
-
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <vector>
-#include <string>
-#include <memory>
-#include <map>
-
-//class ParticleSystem;
 
 #include "core/event_info.h"
 #include "core/data_system.h"
@@ -23,7 +29,7 @@ namespace data_buffer
 	class AbstractArray;
 }
 
-class ParticleSystem : public data_system
+class ParticleSystem : public DataSystem
 {
 public:
 	ParticleSystem(cl::Platform & platform,
@@ -85,6 +91,12 @@ protected:
 
 	
 	cl::Program m_standard_functions;
+
+private:
+	std::vector<event_info> deleteMarkedParticles();
+	std::vector<event_info> duplicateMarkedParticles();
+	std::vector<event_info> clearDuplicationDeletionBuffers();
+
 };
 
 //#include "core/data_variable.h"

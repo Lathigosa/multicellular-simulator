@@ -1,7 +1,7 @@
 #include "lua/lua_opencl.h"
 
 #include <iostream>
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <resources/strings.h>
 
 #if !defined LUA_VERSION_NUM

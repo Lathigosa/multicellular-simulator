@@ -5,9 +5,7 @@
 #include <epoxy/gl.h>
 #endif // NO_UI
 
-#include "main.h"
-
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <vector>
 #include <string>
 #include <memory>
@@ -15,7 +13,6 @@
 
 
 #include "core/particle_system.h"
-#include "core/data_variable.h"
 #include "kernels/cell_particle_physics.h"
 #include "kernels/cells_as_dots.h"
 #include "kernels/particle_marker.h"
@@ -62,6 +59,9 @@ private:
 	//data_buffer::Array<cl_float4> m_membrane_vertices;			// All membrane vertices.
 	//data_buffer::Array<cl_uint2> m_membrane_edges;				// All membrane edges (defined by vertex indices).
 	//data_buffer::Array<cl_uint16> m_membrane_faces;				// All membrane faces (defined by vertex indices).
+
+	std::vector<event_info> calculatePhysicsStep();
+	std::vector<event_info> markParticlesForDivisionOrDeletion();
 
 	// Render functions:
 	position_spheres test_renderer;

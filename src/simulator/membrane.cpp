@@ -144,7 +144,10 @@ std::vector<event_info> membrane::simulate_unit(float step_size)
 	// Switch the buffers:
 	buffer_index = !buffer_index;
 
-	return {{event_sort_particles, "sort particles"}, {event_physics, "physics"}};
+	EventLog log;
+	log.add(event_info("MEMBRANE: sort particles", event_info::kernel, event_sort_particles));
+	log.add(event_info("MEMBRANE: physics", event_info::kernel, event_physics));
+	return std::move(log.get());
 }
 
 
@@ -212,7 +215,7 @@ error membrane::spawn_cells(unsigned int count, cl_float4* positions, cl_float4*
 	return error::success;
 }
 
-const void membrane::expose_lua_library(lua_State* L) const
+void membrane::expose_lua_library(lua_State* L) const
 {
 	// Include the library to the table at the top of the stack:
 	luaL_register(L, nullptr, lua::sim_membrane::functions);

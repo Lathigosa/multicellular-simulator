@@ -50,7 +50,7 @@ namespace simulation
 
 			
 
-			const void expose_lua_library(lua_State* L) const override;
+			void expose_lua_library(lua_State* L) const override;
 
 			// Own library functions:
 			error spawn_cells(unsigned int count, cl_float4* positions, cl_float4* velocities = nullptr);
