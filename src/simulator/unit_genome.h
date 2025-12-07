@@ -1,8 +1,8 @@
 #ifndef UNIT_GENOME_H
 #define UNIT_GENOME_H
 
-#include "utilities/queue.h"
-#include "utilities/buffer.h"
+#include <deque>
+#include <vector>
 
 namespace simulation {
 
@@ -19,8 +19,8 @@ namespace simulation {
         //buffer<buffer<double>> product_to_gene_feedback;    /// The amount in which the product influences the gene, a positive value is an activator, a negative value is a repressor. Format: array[gene][product].
         /// @todo Change buffer<buffer<double>> to buffer_2d<double>!
 
-        queue<gene> genes;
-        queue<double> product_to_gene_feedback;
+        std::deque<gene> genes;
+        std::deque<double> product_to_gene_feedback;
 
         void add_gene();
         void add_product();
@@ -33,8 +33,8 @@ namespace simulation {
         unit_genome();
         virtual ~unit_genome();
 
-        buffer<double> expression;               /// The gene expression in mol/s of each gene.
-        buffer<double> product_concentration;    /// The gene products in mol/L. @todo include product location, since when two genes are close together and influence each other, it is more likely that the products are nearby.
+        std::vector<double> expression;               /// The gene expression in mol/s of each gene.
+        std::vector<double> product_concentration;    /// The gene products in mol/L. @todo include product location, since when two genes are close together and influence each other, it is more likely that the products are nearby.
     };
 
 }
