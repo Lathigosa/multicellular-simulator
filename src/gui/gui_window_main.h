@@ -1,9 +1,6 @@
 #ifndef GUI_WINDOW_H
 #define GUI_WINDOW_H
 
-#include "../utilities/queue.h"
-#include "../utilities/safe_pointer.h"
-
 #include <memory>
 #include <vector>
 

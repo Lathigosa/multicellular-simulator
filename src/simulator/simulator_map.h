@@ -5,7 +5,6 @@
 #include <vector>
 #include <map>
 #include "core/sim_unit_template.h"
-#include "utilities/safe_pointer.h"
 
 #include "simulator/unit_cell.h"
 #include "simulator/membrane.h"

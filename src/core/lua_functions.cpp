@@ -5,8 +5,6 @@
 #include "resources/strings.h"
 
 #include "simulation_file_object.h"
-#include "simulator/membrane.h"
-#include "utilities/safe_pointer.h"
 #include "simulator/simulator_map.h"
 #include "renderer/renderer_map.h"
 

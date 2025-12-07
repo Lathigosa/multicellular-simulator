@@ -4,9 +4,7 @@
 #include "resources/strings.h"
 
 #include "core/simulation_file_object.h"
-#include "simulator/membrane.h"
 #include "simulator/unit_cell.h"
-#include "utilities/safe_pointer.h"
 #include "simulator/simulator_map.h"
 
 namespace lua

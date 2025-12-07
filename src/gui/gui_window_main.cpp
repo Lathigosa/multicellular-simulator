@@ -1,19 +1,13 @@
 #include "gui_window_main.h"
-#include "resources/project_resources.h"
 #include <gio/gfile.h>
 
 #include <gtkmm/label.h>
 
-#include "utilities/safe_pointer.h"
-
-#include <iostream>
 #include <string>
 #include <gtkmm/image.h>
 
 #include "gui_plane_cell_view.h"
 #include "gui_plane_neural_network_view.h"
-
-#include "cell_simulator/cell_system.h"
 
 gui_window::gui_window() :  main_layout(),
                             main_sublayout(),
@@ -37,8 +31,8 @@ gui_window::gui_window() :  main_layout(),
 							sfo()
 {
     // Add all planes:
-    planes.push_back(make_unique<gui_plane_cell_view>(sfo));
-    planes.push_back(make_unique<gui_plane_neural_network_view>());
+    planes.push_back(std::make_unique<gui_plane_cell_view>(sfo));
+    planes.push_back(std::make_unique<gui_plane_neural_network_view>());
 
     // Cycle through all planes to get the name and image:
     for(unsigned int a=0; a<planes.size(); a++)

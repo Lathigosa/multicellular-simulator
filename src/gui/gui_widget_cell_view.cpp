@@ -6,16 +6,8 @@
 #include <glm/gtx/transform.hpp>
 
 #include <iostream>
-#include <exception>
-
-#include "simulator/membrane.h"
-
-#include "utilities/safe_pointer.h"
-#include <vector>
 
 #include <glibmm.h>
-
-#include "gui/shader_tools.h"
 
 gui_widget_cell_view::gui_widget_cell_view(simulation_file_object& ref) : sandbox(),
 																		sfo(ref)

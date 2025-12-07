@@ -5,7 +5,6 @@
 #include <vector>
 #include <map>
 #include "core/render_unit_template.h"
-#include "utilities/safe_pointer.h"
 
 #include "renderer/cells_as_dots.h"
 #include "renderer/cells_velocity.h"
