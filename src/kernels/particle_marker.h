@@ -16,10 +16,7 @@
 class ParticleMarker : public data_kernel
 {
 public:
-	ParticleMarker(cl::Platform & platform,
-	               cl::Device & device,
-	               cl::Context & context,
-	               cl::CommandQueue & command_queue,
+	ParticleMarker(cl::CommandQueue & command_queue,
 	               const std::string marker_code);
 	
 	virtual ~ParticleMarker();

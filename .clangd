@@ -58,3 +58,23 @@ CompileFlags:
     - -pthread
     - -I/usr/include/python3.13
     - -I/var/home/user/.local/lib/python3.13/site-packages/pybind11/include
+  # --- warnings (pedantic, GCC style) ---
+    - -Wall
+    - -Wextra
+    - -Wpedantic
+    - -Wconversion
+    - -Wsign-conversion
+    - -Wshadow
+    - -Wnon-virtual-dtor
+    - -Wold-style-cast
+    - -Wcast-align
+    - -Wunused
+    - -Woverloaded-virtual
+    - -Wformat=2
+    - -Wdouble-promotion
+    - -Wzero-as-null-pointer-constant
+    - -Wlogical-op
+    - -Wnull-dereference
+    - -Wfloat-equal
+    - -Wmissing-declarations
+    - -Wmissing-include-dirs

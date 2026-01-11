@@ -44,3 +44,9 @@ sudo dnf install \
 ```
 
 Once these are all installed, simply run `make` to compile the project. Use `make clean` if previous builds cause interference.
+
+### Test:
+I am currently testing a new dependency on a text renderer in OpenGL, which requires
+```sh
+sudo dnf install freetype freetype-devel ftgl ftgl-devel
+```

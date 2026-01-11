@@ -1,14 +1,42 @@
 // This kernel sorts particles in a 3d grid data structure for faster collision detection.
 
-#define GRID_X_SIZE 64
-#define GRID_Y_SIZE 64
-#define GRID_Z_SIZE 64
+#if !defined(GRID_X_SIZE)
+#error "GRID_X_SIZE must be defined via -DGRID_X_SIZE=..."
+#endif
 
-#define VOXEL_X_SIZE 10.0f
-#define VOXEL_Y_SIZE 10.0f
-#define VOXEL_Z_SIZE 10.0f
+#if !defined(GRID_Y_SIZE)
+#error "GRID_Y_SIZE must be defined via -DGRID_Y_SIZE=..."
+#endif
 
-#define MAX_CELLS_PER_VOXEL 16
+#if !defined(GRID_Z_SIZE)
+#error "GRID_Z_SIZE must be defined via -DGRID_Z_SIZE=..."
+#endif
+
+//#define GRID_X_SIZE 64
+//#define GRID_Y_SIZE 64
+//#define GRID_Z_SIZE 64
+
+#if !defined(VOXEL_X_SIZE)
+#error "VOXEL_X_SIZE must be defined via -DVOXEL_X_SIZE=..."
+#endif
+
+#if !defined(VOXEL_Y_SIZE)
+#error "VOXEL_Y_SIZE must be defined via -DVOXEL_Y_SIZE=..."
+#endif
+
+#if !defined(VOXEL_Z_SIZE)
+#error "VOXEL_Z_SIZE must be defined via -DVOXEL_Z_SIZE=..."
+#endif
+
+//#define VOXEL_X_SIZE 10.0f
+//#define VOXEL_Y_SIZE 10.0f
+//#define VOXEL_Z_SIZE 10.0f
+
+#if !defined(MAX_CELLS_PER_VOXEL)
+#error "MAX_CELLS_PER_VOXEL must be defined via -DMAX_CELLS_PER_VOXEL=..."
+#endif
+
+//#define MAX_CELLS_PER_VOXEL 64
 
 int3 get_grid_coords(float3 position)
 {
@@ -59,7 +87,7 @@ uint get_grid_id_from_coords(int3 grid_coords)
 // temp_grid_counter should have 1 uint per voxel. It is used to count the number of cells in one voxel, so that the proper index of the voxel uints can be accessed.
 
 kernel void spatial_particle_sort_3d(	global uint* out_grid,
-										global uint* temp_grid_counter,
+										global uint* amount_of_cells_per_grid_voxel,
 										global const float4* in_position,
 										private uint count)
 {
@@ -67,17 +95,16 @@ kernel void spatial_particle_sort_3d(	global uint* out_grid,
 		return;
 	
 	//TODO: do not include unused particles (due to NDRANGE size being in increments)!
-	float3 p = in_position[get_global_id(0)].xyz;
+	float3 particle_position = in_position[get_global_id(0)].xyz;
 	
-	uint grid_id = get_grid_id(p);
+	uint grid_id = get_grid_id(particle_position);
 	
 	// TODO: investigate the removal of the next if-statement (queue.flush fails with error -9999 without it for n>131072):
-	if(temp_grid_counter[grid_id] < 16)
+	if(amount_of_cells_per_grid_voxel[grid_id] < MAX_CELLS_PER_VOXEL)
 	{
-	
-		uint index = atomic_inc(&temp_grid_counter[grid_id]);	// Get first empty index and increase counter of selected voxel.
+		uint index = atomic_inc(&amount_of_cells_per_grid_voxel[grid_id]);	// Get first empty index and increase counter of selected voxel.
 		//uint index = 0;
-		if(index < 16)
+		if(index < MAX_CELLS_PER_VOXEL)
 			out_grid[grid_id * MAX_CELLS_PER_VOXEL + index] = get_global_id(0);		// Store index of cell in the empty spot of the voxel.
 	}
 	//TODO: handle cases of overflow!

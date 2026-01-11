@@ -2,13 +2,22 @@
 
 #include <random>
 
-kernel void append_buffer(	global float4* out_buffer,
-							global uint* in_new_cells,
-							int append_index,
+// Scale factor for splitting a particle into two smaller particles
+// such that the combined volume of the children equals the parent.
+// (1/2)^(1/3) \approx 0.793700526
+#define RADIUS_SCALE_FACTOR 0.793700526f
+
+kernel void split_particle(	global float4* out_buffer,
+							global uint* in_marked_particles,
+							int first_empty_element_in_array,
 							uint2 seed)
 {
+	size_t new_particle_index = get_global_id(0) + first_empty_element_in_array;
+	size_t old_particle_index = in_marked_particles[get_global_id(0)];
+
 	//TODO: perhaps double buffer to prevent race conditions!!!
-	float new_size = out_buffer[in_new_cells[get_global_id(0)]].w * 0.793700526f;	// Multiply by 1/2^(1/3) to preserve volume.
+	float child_particle_radius = out_buffer[old_particle_index].w * RADIUS_SCALE_FACTOR;	// Multiply by 1/2^(1/3) to preserve volume.
+	float3 current_position = out_buffer[old_particle_index].xyz;
 	
 	float2 angles = generate_random_float(seed, (uint2)(0, 0));
 	angles.x = angles.x * M_PI_F;
@@ -17,10 +26,11 @@ kernel void append_buffer(	global float4* out_buffer,
 	const float cos_a = cos(angles.x);
 	const float sin_b = sin(angles.y);
 	const float cos_b = cos(angles.y);
+
+	float3 division_axis = (float3)(sin_a * cos_b, sin_a * sin_b, cos_a);
 	
-	out_buffer[get_global_id(0) + append_index] = (float4)(out_buffer[in_new_cells[get_global_id(0)]].xyz, new_size) + (float4)(sin_a * cos_b, sin_a * sin_b, cos_a, 0.0f);
-	
-	out_buffer[in_new_cells[get_global_id(0)]].w = new_size;
+	out_buffer[new_particle_index] = (float4)(current_position - division_axis, child_particle_radius);
+	out_buffer[old_particle_index] = (float4)(current_position + division_axis, child_particle_radius);
 };
 
 // This kernel keeps track of any new membrane vertices, edges or faces as well:

@@ -99,7 +99,7 @@ void simulation_world::init(bool use_gl_context)
 	if(cell_system != nullptr)
 		delete cell_system;
 	
-	cell_system = new CellSystem(default_platform, default_device, opencl_context, queue);
+	cell_system = new CellSystem(queue);
 
 	has_initialized = true;
 }
@@ -114,10 +114,10 @@ void simulation_world::simulate_all()
 {
 	if (!has_initialized) return message_debug("ERROR! Not yet initialized simulation_world.");
 
-	for(auto& unit : simulation_units) profiler_log.add(unit->simulate(0.1f));
+	//for(auto& unit : simulation_units) profiler_log.add(unit->simulate(0.1f));
 
 	// TEST: Simulate cell_system:
-	// profiler_log.add(cell_system->run());
+	profiler_log.add(cell_system->run());
 }
 
 void CL_CALLBACK EventCallback(cl_event event, cl_int, void* pUserData)

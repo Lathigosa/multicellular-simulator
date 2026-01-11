@@ -13,25 +13,45 @@
 
 #include "core/data_variable.h"
 
-class cell_particle_physics : public data_kernel
-{
+/*
+class ForceField {
 public:
-	cell_particle_physics(cl::Platform & platform,
-	                      cl::Device & device,
-	                      cl::Context & context,
-	                      cl::CommandQueue & command_queue);
+	virtual ~ForceField();
+	virtual std::vector<cl_float4> getRenderableGeometry();
+
+	virtual const std::string getOpenCLCode();
+};
+
+class PlanarForceField : public ForceField {
+public:
+	std::vector<cl_float4> getRenderableGeometry() override;
+
+	const std::string getOpenCLCode() override;
+
+private:
+	static constexpr std::string_view kernel_code;
+	std::vector<cl_float4> geometry;
+};
+
+class SphericalForceField : public ForceField {
+	
+};*/
+
+class cell_particle_physics : public data_kernel {
+public:
+	cell_particle_physics(cl::CommandQueue & command_queue);
 	
 	virtual ~cell_particle_physics();
 
 
 	void build();
 
-	std::vector<event_info> run(data_buffer::Array<cl_float4>& position_1,
-	                            data_buffer::Array<cl_float4>& velocity_1,
-	                            data_buffer::Array<cl_float4>& acceleration_1,
-	                            data_buffer::Array<cl_float>& radius_1,
-	                            const data_buffer::Array<cl_float4>& position_2,
-	                            const data_buffer::Array<cl_float>& radius_2,
+	std::vector<event_info> run(data_buffer::ParticleData<cl_float4>& position_1,
+	                            data_buffer::ParticleData<cl_float4>& velocity_1,
+	                            data_buffer::ParticleData<cl_float4>& acceleration_1,
+	                            data_buffer::ParticleData<cl_float>& radius_1,
+	                            const data_buffer::ParticleData<cl_float4>& position_2,
+	                            const data_buffer::ParticleData<cl_float>& radius_2,
 	                            unsigned int particle_count);
 private:
 
@@ -47,6 +67,14 @@ private:
 	unsigned int grid_size_x = 64;
 	unsigned int grid_size_y = 64;
 	unsigned int grid_size_z = 64;
+
+	float voxel_x_size = 10.0f;
+	float voxel_y_size = 10.0f;
+	float voxel_z_size = 10.0f;
+
+	unsigned int max_cells_per_voxel = 256;
+
+	//std::vector<std::unique_ptr<ForceField>> force_fields;
 };
 
 #endif // CELL_PARTICLE_PHYSICS_H

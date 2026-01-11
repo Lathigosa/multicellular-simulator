@@ -57,7 +57,7 @@ position_spheres::~position_spheres()
 	//dtor
 }
 
-void position_spheres::initialize(data_buffer::Array<cl_float4>& positions, cl::CommandQueue& queue)
+void position_spheres::initialize(data_buffer::ParticleData<cl_float4>& positions, cl::CommandQueue& queue)
 {
 	has_initialized = true;
 
@@ -119,7 +119,7 @@ void position_spheres::initialize(data_buffer::Array<cl_float4>& positions, cl::
 	
 }
 
-void position_spheres::render(camera gl_camera, data_buffer::Array<cl_float4>& positions, cl::CommandQueue& queue)
+void position_spheres::render(camera gl_camera, data_buffer::ParticleData<cl_float4>& positions, cl::CommandQueue& queue)
 {
 	if (has_initialized == false)
 	{

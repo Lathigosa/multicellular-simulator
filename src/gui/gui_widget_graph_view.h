@@ -3,8 +3,6 @@
 
 #include <vector>
 
-//#include "utilities/queue.h"
-
 #include <epoxy/gl.h>
 
 #include <gtkmm/glarea.h>

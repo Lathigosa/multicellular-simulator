@@ -2,14 +2,16 @@
 
 // !! Makes use of "sort_particles_in_3d_grid.cl" !! //
 
-kernel void cell_hookian_repel(global float4* out_position,
-										global float4* out_velocity,
-										global const float4* in_position,
-										global const float4* in_velocity,
-										global const uint* in_grid,				// Used for optimization.
-										global const uint* in_grid_counter,		// Used for optimization.
-										private int count,
-										private float timestep)	// TODO: possibly replace "float4* normal" with "half* normal" and use vload_half4(index, normal) to access it.
+kernel void cell_hookian_repel(
+	global float4* out_position,
+	global float4* out_velocity,
+	global const float4* in_position,
+	global const float4* in_velocity,
+	global const uint* in_grid,				// Used for optimization.
+	global const uint* in_grid_counter,		// Used for optimization.
+	private int count,
+	private float timestep
+	)	// TODO: possibly replace "float4* normal" with "half* normal" and use vload_half4(index, normal) to access it.
 {
 	if(get_global_id(0) >= count)
 		return;
@@ -41,6 +43,7 @@ kernel void cell_hookian_repel(global float4* out_position,
 			int a = in_grid[grid_id * MAX_CELLS_PER_VOXEL + i];
 			
 			float3 your_position = in_position[a].xyz;
+			float your_size = in_position[a].w;
 			float dist = distance(my_position, your_position);
 
 			// TODO: remove this if-statement:
@@ -53,7 +56,7 @@ kernel void cell_hookian_repel(global float4* out_position,
 			//float force_magnitude = 24.0f * (0.5f) / dist * (2.0f*pown((in_position[a].w + my_size) / dist, 12) - pown((in_position[a].w + my_size) / dist, 6));
 			
 			// Hookian Repel:
-			float force_magnitude = max(0.0f, (in_position[a].w + my_size - dist) * 10.0f);	//FOR PERFORMANCE TESTING
+			float force_magnitude = max(0.0f, (my_size + your_size - dist) * 10.0f);	//FOR PERFORMANCE TESTING
 			//float force_magnitude = max(0.0f, pown((in_position[a].w + my_size) / dist, 12) * 0.0001f);	//FOR PERFORMANCE TESTING PURPOSES, SET MULTIPLIER TO 100.0f!
 
 			float3 force = force_magnitude * force_direction;
@@ -70,31 +73,44 @@ kernel void cell_hookian_repel(global float4* out_position,
 	{
 		float plane_length = my_position.z;
 		float plane_force = min(0.0f, (plane_length - 10.0f)*10.0f);
-		float3 plane_direction = (float3)(0.0f, 0.0f, -1.0f);
+		float3 force_direction = (float3)(0.0f, 0.0f, -1.0f);
 		
 		if (!isnan(plane_length) && plane_length != 0.0f)
 		
-		my_acceleration = my_acceleration + plane_force * plane_direction;
+		my_acceleration = my_acceleration + plane_force * force_direction;
 	}
 	
 	{
 		float3 plane_force = max(0.0f, (fabs(my_position) - 256.0f)*10.0f);
-		float3 plane_direction = sign(my_position)*-1.0f;
+		float3 force_direction = sign(my_position)*-1.0f;
 		
 		if (!isnan(my_position.x) && !isnan(my_position.y) && !isnan(my_position.z))
 		
-		my_acceleration = my_acceleration + plane_force * plane_direction;
+		my_acceleration = my_acceleration + plane_force * force_direction;
 	}
 	
-	/*{
-		float sphere_length = length(my_position);
-		float sphere_force = min(0.0f, (sphere_length - 100.0f)*10.0f);
-		float3 sphere_direction = -my_position / sphere_length;
+	{
+		float3 sphere_position = (float3)(0.0, 0.0, 100.0);
+		float sphere_length = length(my_position - sphere_position);
+		float sphere_force = max(0.0f, (sphere_length - 100.0f)*10.0f);
+		float3 sphere_direction = -(my_position - sphere_position) / sphere_length;
 		
 		if (!isnan(sphere_length) && sphere_length != 0.0f)
 		
 		my_acceleration = my_acceleration + sphere_force * sphere_direction;
-	}*/
+	}
+
+	{
+		float3 sphere_position = (float3)(0.0, 0.0, 100.0);
+		float distance_from_sphere = length(my_position - sphere_position);
+		float sphere_radius = 70.0;
+		float sphere_force = max(0.0f, -(distance_from_sphere - sphere_radius)*100.0f);
+		float3 force_direction = (my_position - sphere_position) / distance_from_sphere;
+		
+		if (!isnan(distance_from_sphere) && distance_from_sphere != 0.0f)
+		
+		my_acceleration = my_acceleration + sphere_force * force_direction;
+	}
 
 	// Calculate velocity (based on timestep):
 	//my_acceleration = my_acceleration - in_velocity[get_global_id(0)].xyz * 0.1f;
@@ -104,6 +120,6 @@ kernel void cell_hookian_repel(global float4* out_position,
 
 	// Upload the values:
 	out_velocity[get_global_id(0)] = (float4) (my_velocity, 1.0f); // Velocity Damping
-	out_position[get_global_id(0)] = (float4) (my_position, min(my_size + 0.006f * timestep, 5.0f));
+	out_position[get_global_id(0)] = (float4) (my_position, min(my_size + 0.006f * timestep, 2.0f));
 	//"out_position[get_global_id(0)] = (float4) (0.0f, 1.0f, 2.0f, 1.0f);"
 }

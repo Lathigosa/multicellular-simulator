@@ -70,7 +70,8 @@ endif
 endif
 
 # Base compiler flags
-CXXFLAGS_BASE := -std=c++23 -Wall -Wextra -pedantic -Wno-c++26-extensions
+#  -Wall -Wextra -pedantic
+CXXFLAGS_BASE := -std=c++23 -Wno-c++26-extensions
 CXXFLAGS_DEBUG   := $(CXXFLAGS_BASE) -g -D_DEBUG $(PKG_INC) $(PYBIND_INC) $(PYTHON_INC) $(OPENCL_INC)
 CXXFLAGS_RELEASE := $(CXXFLAGS_BASE) -O2 $(PKG_INC) $(PYBIND_INC) $(PYTHON_INC) $(OPENCL_INC)
 

@@ -1,11 +1,2 @@
-#include "icosphere.h"
+#include "icosphere.hpp"
 
-icosphere::icosphere()
-{
-	//ctor
-}
-
-icosphere::~icosphere()
-{
-	//dtor
-}

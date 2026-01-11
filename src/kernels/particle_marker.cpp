@@ -3,14 +3,12 @@
 #include "utilities/load_file.h"
 
 #include <cmath>
+#include <string>
 
 
-ParticleMarker::ParticleMarker(cl::Platform & platform,
-                               cl::Device & device,
-                               cl::Context & context,
-                               cl::CommandQueue & command_queue,
+ParticleMarker::ParticleMarker(cl::CommandQueue & command_queue,
                                const std::string marker_code) : 
-	data_kernel(platform, device, context, command_queue)
+	data_kernel(command_queue)
 {
 	build(marker_code);
 }
@@ -25,9 +23,9 @@ void ParticleMarker::build(const std::string marker_code)
 
 	
 	// Insert the custom duplication kernel:
-	size_t index = kernel_code.find("<user_code>", index);
+	size_t index = kernel_code.find("<user_code>");
 	
-	if (index == std::string::npos) return;
+	if (index == std::string::npos) return message_debug("Warning: did not compile ParticleMarker.\n\n\nCode:\n\n", kernel_code, "\n\n");
 	
 	// Make the replacement.
 	//kernel_code.replace(index, 11, "if (random_float((float)get_global_id(0)/(float)count, 0.0f, (float)seed) > 0.9992f) MARK_DUPLICATE;");
@@ -64,15 +62,35 @@ std::vector<event_info> ParticleMarker::run(const cl::Buffer& marked_particle_in
 	kernel_random_marker.setArg(1, marked_particle_group_size);
 	kernel_random_marker.setArg(2, particle_count);
 	kernel_random_marker.setArg(3, (unsigned long)std::rand());
+
+	auto group_size = 256;
+	auto group_count = (particle_count + group_size - 1)/group_size;
 	
-	m_command_queue.enqueueNDRangeKernel(kernel_random_marker, cl::NullRange, cl::NDRange(ceil(double(particle_count)/256.0)*256), cl::NDRange(256), nullptr, &event_random_marker);   // TODO: determine proper
+	m_command_queue.enqueueNDRangeKernel(
+		kernel_random_marker,
+		cl::NullRange,
+		cl::NDRange(group_count*group_size),
+		cl::NDRange(group_size),
+		nullptr,
+		&event_random_marker
+	);   // TODO: determine proper
 	
 	// Concatenate data:
 	kernel_concatenate.setArg(0, copied_particles);
 	kernel_concatenate.setArg(1, marked_particle_indices);
 	kernel_concatenate.setArg(2, marked_particle_group_size);
 	
-	m_command_queue.enqueueNDRangeKernel(kernel_concatenate, cl::NullRange, cl::NDRange(ceil(double(particle_count)/256.0)), cl::NullRange, nullptr, &event_concatenate);
+	m_command_queue.enqueueNDRangeKernel(
+		kernel_concatenate,
+		cl::NullRange,
+		cl::NDRange(group_count),
+		cl::NullRange,
+		nullptr,
+		&event_concatenate
+	);
+
+	message_debug("PARTICLE_MARKER: group_count =", group_count);
+	message_debug("PARTICLE_MARKER: particle_count =", particle_count);
 
 	EventLog log;
 	log.add(event_info("PARTICLE_MARKER: random_marker", event_info::kernel, event_random_marker));

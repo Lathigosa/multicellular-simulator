@@ -26,16 +26,13 @@
 
 namespace data_buffer
 {
-	class AbstractArray;
+	class AbstractParticleData;
 }
 
 class ParticleSystem : public DataSystem
 {
 public:
-	ParticleSystem(cl::Platform & platform,
-	               cl::Device & device,
-	               cl::Context & context,
-	               cl::CommandQueue & command_queue);
+	ParticleSystem(cl::CommandQueue & command_queue);
 	ParticleSystem(const ParticleSystem& from) = delete;			// TODO: add copy and assignment?
 	ParticleSystem& operator=(const ParticleSystem&) = delete;
 
@@ -56,7 +53,9 @@ public:
 
 	unsigned int getMaximalParticleCount();
 
-	void manageArray(data_buffer::AbstractArray* array);
+	void manageArray(data_buffer::AbstractParticleData* array);
+
+	const cl::Program& getStandardParticleFunctions();
 
 protected:
 	cl::Kernel kernel_random_deletion;
@@ -87,7 +86,7 @@ protected:
 	// Test:
 	int countdown = 64*4;
 
-	std::vector<data_buffer::AbstractArray*> m_managed_arrays;
+	std::vector<data_buffer::AbstractParticleData*> m_managed_arrays;
 
 	
 	cl::Program m_standard_functions;

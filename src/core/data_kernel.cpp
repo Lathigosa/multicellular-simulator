@@ -5,14 +5,11 @@
 #include "utilities/load_file.h"
 
 
-data_kernel::data_kernel(cl::Platform & platform,
-						cl::Device & device,
-						cl::Context & context,
-						cl::CommandQueue & command_queue) :
-	m_platform(platform),
-	m_device(device),
-	m_context(context),
-	m_command_queue(command_queue)
+data_kernel::data_kernel(cl::CommandQueue & command_queue) :
+	m_command_queue(command_queue),
+	m_context(command_queue.getInfo<CL_QUEUE_CONTEXT>()),
+    m_device(command_queue.getInfo<CL_QUEUE_DEVICE>()),
+    m_platform(m_device.getInfo<CL_DEVICE_PLATFORM>())
 {
 
 }

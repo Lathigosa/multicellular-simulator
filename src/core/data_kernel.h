@@ -2,18 +2,11 @@
 #define DATA_KERNEL_H_INCLUDED
 
 #include <CL/opencl.hpp>
-#include <vector>
-#include <string>
-#include <memory>
-#include <map>
 
 class data_kernel
 {
 public:
-	data_kernel(cl::Platform & platform,
-				cl::Device & device,
-				cl::Context & context,
-				cl::CommandQueue & command_queue);
+	data_kernel(cl::CommandQueue & command_queue);
 	
 	data_kernel(const data_kernel& from) = default;
 	data_kernel& operator=(const data_kernel&) = default;
@@ -25,10 +18,10 @@ public:
 	//virtual std::vector<event_info> run(bool buffer_index);
 
 protected:
-	cl::Platform & m_platform;
-	cl::Device & m_device;
-	cl::Context & m_context;
 	cl::CommandQueue & m_command_queue;
+	cl::Context m_context;
+	cl::Device m_device;
+	cl::Platform m_platform;
 	
 	cl::Program get_program_from_file(const char* const file_name) const;
 	cl::Kernel get_kernel_from_file(const char* const file_name, const char* const kernel_name) const;

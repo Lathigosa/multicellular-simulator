@@ -19,8 +19,6 @@
 #include <epoxy/gl.h>
 #endif // NO_UI
 
-#include "main.h"
-
 #include <CL/opencl.hpp>
 #include <vector>
 #include <string>
@@ -44,14 +42,14 @@ namespace data_buffer
 	};
 
     /**
-     * @class AbstractArray
+     * @class AbstractParticleData
      * @brief Interface for a one-dimensional double-buffered resizable GPU array.
      *
      * Defines the common interface for arrays managed by the ParticleSystem.
      * Supports duplication, deletion, buffer swapping, and optional VBO
      * integration.
      */
-	class AbstractArray
+	class AbstractParticleData
 	{
 	public:
 		/// Swap front and back buffers
@@ -106,9 +104,16 @@ namespace data_buffer
 		                                                cl::Buffer empty_particles,
 		                                                unsigned int empty_count) = 0;
 	};
+
+	// Some tricks with which to detect whether a type is a cl::array or not:
+	template <typename>
+	struct is_cl_array : std::false_type {};
+
+	template <typename U, size_t N>
+	struct is_cl_array<cl::array<U, N>> : std::true_type {};
 	
 	/**
-     * @class Array
+     * @class ParticleData
      * @brief One-dimensional double-buffered GPU array of type T.
      *
      * Supports particle duplication and deletion, optional custom kernels,
@@ -116,10 +121,21 @@ namespace data_buffer
      *
      * @tparam T Type of elements stored in the array
      */
-	template <class T>
-	class Array : AbstractArray
+	template <typename T>
+	class ParticleData : public AbstractParticleData
 	{
 	public:
+		size_t entry_size() const override {
+			if constexpr (is_cl_array<T>::value) {
+				return sizeof(typename T::value_type)*T::size();
+			} else {
+				return sizeof(T);
+			}
+		}
+		unsigned int used_count() const override { return m_used_count; }
+		unsigned int max_count() const override { return m_max_count; }
+		size_t memory_footprint() const override { return m_max_count*entry_size(); }
+
 		/**
          * @brief Construct array with maximum size.
          * @param context OpenCL context
@@ -127,16 +143,14 @@ namespace data_buffer
          * @param standard_functions OpenCL program containing kernels
 		 * @note Deprecated?
          */ 
-		Array(cl::Context& context, unsigned int max_count, cl::Program& standard_functions) : m_context(context)
+		ParticleData(cl::Context& context, size_t max_count, cl::Program& standard_functions) : m_context(context), m_max_count(max_count)
 		{
 			// TODO: allow for custom read_write settings:
-			m_buffers[0] = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(T)*max_count);
-			m_buffers[1] = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(T)*max_count);
-			m_max_count = max_count;
+			m_buffers[0] = cl::Buffer(context, CL_MEM_READ_WRITE, entry_size()*m_max_count);
+			m_buffers[1] = cl::Buffer(context, CL_MEM_READ_WRITE, entry_size()*m_max_count);
 
 			// Some preprocessor magic to extract the right kernel:
-			duplication_kernel = cl::Kernel(standard_functions, ("append_particles_" + std::to_string(sizeof(T))).c_str());
-			deletion_kernel = cl::Kernel(standard_functions, ("delete_particles_" + std::to_string(sizeof(T))).c_str());
+			initialize_standard_kernels(standard_functions);
 		}
 
 		/**
@@ -146,8 +160,7 @@ namespace data_buffer
          * @param custom_duplication_function Optional custom duplication kernel generator
          * @param custom_deletion_function Optional custom deletion kernel generator
          */
-		Array(ParticleSystem& parent_system,
-		      cl::Program& standard_functions,
+		ParticleData(ParticleSystem& parent_system,
 		      std::function<cl::Kernel(unsigned int)> custom_duplication_function = nullptr,
 		      std::function<cl::Kernel(unsigned int)> custom_deletion_function = nullptr)
 				: m_context(parent_system.getContext())
@@ -156,27 +169,35 @@ namespace data_buffer
 			parent_system.manageArray(this);
 			
 			// TODO: allow for custom read_write settings:
-			m_buffers[0] = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(T)*m_max_count);
-			m_buffers[1] = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(T)*m_max_count);
+			m_buffers[0] = cl::Buffer(m_context, CL_MEM_READ_WRITE, entry_size()*m_max_count);
+			m_buffers[1] = cl::Buffer(m_context, CL_MEM_READ_WRITE, entry_size()*m_max_count);
 
 			m_duplication_function = custom_duplication_function;
 			m_deletion_function = custom_deletion_function;
 			
 			// Some preprocessor magic to extract the right kernel:
-			duplication_kernel = cl::Kernel(standard_functions, ("append_particles_" + std::to_string(sizeof(T))).c_str());
-			deletion_kernel = cl::Kernel(standard_functions, ("delete_particles_" + std::to_string(sizeof(T))).c_str());
+			initialize_standard_kernels(parent_system.getStandardParticleFunctions());
+		}
+
+		void initialize_standard_kernels(cl::Program& standard_functions)
+		{
+			if constexpr (is_cl_array<T>::value) {
+				duplication_kernel = cl::Kernel(standard_functions, ("append_particles_array_" + std::to_string(sizeof(typename T::value_type))).c_str());
+				// TODO: fix deletion kernel!!
+				deletion_kernel = cl::Kernel(standard_functions, ("delete_particles_" + std::to_string(sizeof(typename T::value_type))).c_str());
+			} else {
+				duplication_kernel = cl::Kernel(standard_functions, ("append_particles_" + std::to_string(entry_size())).c_str());
+				deletion_kernel = cl::Kernel(standard_functions, ("delete_particles_" + std::to_string(entry_size())).c_str());
+			}
 		}
 
 		/// Swap front and back buffers
 		void swapBuffers() override { buffer_index = !buffer_index; }
 
+		// Front buffer is the read buffer, back buffer is the write buffer.
+		// The read buffer must always be consistent.
 		cl::Buffer getFrontBuffer() const override { return m_buffers[buffer_index]; }
 		cl::Buffer getBackBuffer() const override { return m_buffers[!buffer_index]; }
-
-		size_t entry_size() const override { return sizeof(T); }
-		unsigned int used_count() const override { return m_used_count; }
-		unsigned int max_count() const override { return m_max_count; }
-		size_t memory_footprint() const override { return m_max_count*sizeof(T); }
 
 		/**
          * @brief Append values to the array.
@@ -190,7 +211,7 @@ namespace data_buffer
 				return;
 
 			// TODO: write to front or back buffer?
-			queue.enqueueWriteBuffer(getFrontBuffer(), CL_FALSE, 0, sizeof(T)*values.size(), &values[0]);
+			// queue.enqueueWriteBuffer(getFrontBuffer(), CL_FALSE, 0, sizeof(T)*values.size(), &values[0]);
 			queue.enqueueWriteBuffer(getBackBuffer(), CL_FALSE, 0, sizeof(T)*values.size(), &values[0]);
 
 			m_used_count += values.size();
@@ -202,103 +223,85 @@ namespace data_buffer
 			if (VBO == 0)
 			{
 				glGenBuffers(1, &VBO);
+				VBO_needs_refresh = true;
 			}
 
-			if (VBO_needs_refresh == true)
-			{
-		
-				//VBO_needs_refresh = false;
+			if (!VBO_needs_refresh) return VBO;
 
-				cl::Buffer buffer = m_buffers[buffer_index];
-				size_t size = memory_footprint();
+			const size_t bytes = m_used_count * sizeof(T);
+			if (bytes == 0) return VBO;
 
-				// TODO: use glSubBufferData for performance improvement!
-				glBindBuffer(GL_ARRAY_BUFFER, VBO);
+			std::vector<std::byte> transfer_array(bytes);
 
-				char* array_test_out_p = new char[size];
+			queue.enqueueReadBuffer(getFrontBuffer(), CL_TRUE, 0, bytes, transfer_array.data());
 
-				queue.enqueueReadBuffer(buffer, CL_TRUE, 0, size, array_test_out_p);
+			glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    		glBufferData(GL_ARRAY_BUFFER, bytes, transfer_array.data(), GL_DYNAMIC_DRAW);
 
-
-				// TODO: remove any and all blocking calls!
-				queue.finish();
-	
-				glBufferData(GL_ARRAY_BUFFER, size, array_test_out_p, GL_DYNAMIC_DRAW);
-
-				delete[] array_test_out_p;
-			}
-	
+			VBO_needs_refresh = true;
 			return VBO;
 		}
 
 		std::vector<event_info> performDuplication(cl::CommandQueue& queue,
-		                                           cl::Buffer empty_particles,
-		                                           cl::Buffer copied_particles,
-		                                           unsigned int copied_count) override
+		                                           cl::Buffer indices_of_particles_to_delete,
+		                                           cl::Buffer indices_of_particles_to_copy,
+		                                           unsigned int amount_of_particles_to_copy) override
 		{
 			// Make sure there is no buffer overflow:
-			if(m_used_count + copied_count > m_max_count)
+			if(m_used_count + amount_of_particles_to_copy > m_max_count)
 				return {};
 				// TODO: Throw error: buffer overflow!
 
 			// Perform the custom duplication function, if it exists:
-			cl::Kernel active_kernel;
-			if(m_duplication_function != nullptr)
-			{
-				active_kernel = m_duplication_function(copied_count);
-			} else {
-				active_kernel = duplication_kernel;
-			}
+			cl::Kernel active_kernel = (m_duplication_function != nullptr)
+                                     ? m_duplication_function(amount_of_particles_to_copy)
+                                     : duplication_kernel;
 
 			// Set the standard arguments and run the kernel:
-			active_kernel.setArg(0, m_buffers[!buffer_index]);
-			active_kernel.setArg(1, copied_particles);
+			active_kernel.setArg(0, getBackBuffer());
+			active_kernel.setArg(1, indices_of_particles_to_copy);
 			active_kernel.setArg(2, m_used_count);
 			
-			queue.enqueueNDRangeKernel(active_kernel, cl::NullRange, cl::NDRange(copied_count), cl::NullRange);
+			queue.enqueueNDRangeKernel(active_kernel, cl::NullRange, cl::NDRange(amount_of_particles_to_copy), cl::NullRange);
 			
-			m_used_count += copied_count;
+			m_used_count += amount_of_particles_to_copy;
 			
 			return {};
 		}
 
 		std::vector<event_info> performDeletion(cl::CommandQueue& queue,
-		                                        cl::Buffer empty_particles,
-		                                        unsigned int empty_count) override
+		                                        cl::Buffer indices_of_particles_to_delete,
+		                                        unsigned int amount_of_particles_to_delete) override
 		{
 			// Copy all particle data:
-			if(m_used_count < empty_count)
+			if(m_used_count < amount_of_particles_to_delete)
 				return {};
 				// TODO: Throw error: buffer underflow!
 
-			// Perform the custom duplication function, if it exists:
-			cl::Kernel active_kernel;
-			if(m_deletion_function != nullptr)
-			{
-				active_kernel = m_deletion_function(empty_count);
-			} else {
-				active_kernel = deletion_kernel;
-			}
+			// Perform the custom deletion function, if it exists:
+			cl::Kernel active_kernel = (m_deletion_function != nullptr)
+                                     ? m_deletion_function(amount_of_particles_to_delete)
+                                     : deletion_kernel;
 
 			// Set the standard arguments and run the kernel:
 			// TODO: why isn't this double buffered?
-			deletion_kernel.setArg(0, m_buffers[!buffer_index]);
-			deletion_kernel.setArg(1, m_buffers[!buffer_index]);
-			deletion_kernel.setArg(2, empty_particles);
-			deletion_kernel.setArg(3, m_used_count);
-			deletion_kernel.setArg(4, empty_count);
+			active_kernel.setArg(0, getBackBuffer());
+			active_kernel.setArg(1, getBackBuffer());
+			active_kernel.setArg(2, indices_of_particles_to_delete);
+			active_kernel.setArg(3, m_used_count);
+			active_kernel.setArg(4, amount_of_particles_to_delete);
 			
-			queue.enqueueNDRangeKernel(deletion_kernel, cl::NullRange, cl::NDRange(empty_count), cl::NullRange);
+			queue.enqueueNDRangeKernel(active_kernel, cl::NullRange, cl::NDRange(amount_of_particles_to_delete), cl::NullRange);
 
-			m_used_count -= empty_count;
+			m_used_count -= amount_of_particles_to_delete;
 	
 			return {};
 		}
 		
 	private:
 		cl::Buffer m_buffers[2];
-		unsigned int m_used_count = 0;
-		unsigned int m_max_count;
+		size_t m_used_count = 0;
+		size_t m_max_count;
 
 		cl::Context& m_context;
 

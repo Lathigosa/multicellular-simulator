@@ -7,8 +7,6 @@
 #include <epoxy/glx.h>		// TODO: see if I should switch to egl instead.
 #endif // NO_UI
 
-#include <iostream>
-
 #include "utilities/camera.h"
 
 #include <CL/opencl.hpp>

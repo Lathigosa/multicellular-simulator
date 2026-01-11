@@ -21,8 +21,8 @@ enum struct error
 };
 
 // TODO: change the target opencl version to 200, when the support is there:
-#define CL_HPP_MINIMUM_OPENCL_VERSION 120
-#define CL_HPP_TARGET_OPENCL_VERSION 120
+//#define CL_HPP_MINIMUM_OPENCL_VERSION 120
+//#define CL_HPP_TARGET_OPENCL_VERSION 120
 //#define CL_HPP_ENABLE_EXCEPTIONS
 
 #if defined(DEBUG) | defined(_DEBUG)
@@ -32,7 +32,7 @@ inline void message_debug(Args&&... args) {
 }
 #else
 template<typename... Args>
-inline void message_debug(Args&&... args) { }
+inline void message_debug([[maybe_unused]] Args&&... args) { }
 #endif
 
 

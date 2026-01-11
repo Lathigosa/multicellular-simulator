@@ -91,7 +91,7 @@ void gui_window::on_open_file()
 	try
     {
 		//sfo.world->running = false;
-        sfo.open_file("test_lua_code.lua");
+        //sfo.open_file("test_lua_code.lua");
 		planes[0]->signal_initialize();
 
 		sfo.world->running = true;

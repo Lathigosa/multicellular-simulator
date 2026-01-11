@@ -1,15 +1,9 @@
 #ifndef KERNEL_CELLS_AS_DOTS_H
 #define KERNEL_CELLS_AS_DOTS_H
 
-#include "main.h"
-
-//#include "core/sim_unit_template.h"
-//#include "core/render_unit_template.h"
-
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <glm/glm.hpp>
-#include <vector>
 
 #ifndef NO_UI
 #include <epoxy/gl.h>
@@ -31,9 +25,9 @@ class position_spheres // : public render_unit_template
 		position_spheres();
 		virtual ~position_spheres();
 
-		void initialize(data_buffer::Array<cl_float4>& positions, cl::CommandQueue& queue);
+		void initialize(data_buffer::ParticleData<cl_float4>& positions, cl::CommandQueue& queue);
 
-		void render(camera gl_camera, data_buffer::Array<cl_float4>& positions, cl::CommandQueue& queue);		//
+		void render(camera gl_camera, data_buffer::ParticleData<cl_float4>& positions, cl::CommandQueue& queue);		//
 	protected:
 	private:
 		// Grid renderer:

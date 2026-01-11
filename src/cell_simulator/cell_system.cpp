@@ -1,28 +1,25 @@
 #include "cell_system.h"
 
 #include <CL/opencl.hpp>
-#include <cctype>
 
-
-CellSystem::CellSystem(cl::Platform & platform,
-                       cl::Device & device,
-                       cl::Context & context,
-                       cl::CommandQueue & command_queue) : 
-	ParticleSystem(platform, device, context, command_queue),
-	m_position_1(*this, m_standard_functions, [this](unsigned int) -> cl::Kernel { position_duplicator.setArg(3, (unsigned long)std::rand()); return position_duplicator; }),
-	m_velocity_1(*this, m_standard_functions),
-	m_radius_1(*this, m_standard_functions),
-	m_neighbors(*this, m_standard_functions, [this](unsigned int) -> cl::Kernel { return neighbors_duplicator; }),
-	kernel_physics(platform, device, context, command_queue),
-	kernel_particle_marker(platform, device, context, command_queue,
-	                       "if (generate_random_int(seed, (uint2)(0, 0)).x < 4294967) MARK_DUPLICATE;")
-{
-
-	position_duplicator = get_kernel_from_file("cl_kernels/append_buffer_cell_division_random_displacement.cl", "append_buffer");
-	position_duplicator = get_kernel_from_file("cl_kernels/append_buffer_cell_division_random_displacement.cl", "append_buffer");
+CellSystem::CellSystem(cl::CommandQueue & command_queue)
+	: ParticleSystem(command_queue)
+	, kernel_physics(command_queue)
+	, kernel_particle_marker(command_queue,
+	                       "uint2 random_variable = generate_random_int(seed, (uint2)(0, 0));"
+						   "if (random_variable.x < (0xFFFFFFFF / 4000)) MARK_DUPLICATE;"
+						   "if (random_variable.y < (0xFFFFFFFF / 4000)) MARK_DELETE;"
+						)
+	, m_position_1(*this, [this](unsigned int) -> cl::Kernel { position_duplicator.setArg(3, (unsigned long)std::rand()); return position_duplicator; })
+	, m_velocity_1(*this)
+	, m_radius_1(*this)
+	, m_neighbors(*this, [this](unsigned int) -> cl::Kernel { return neighbors_duplicator; })
+	//m_membrane_vertex_positions(*this, m_standard_functions),
 	
+{
+	position_duplicator = get_kernel_from_file("cl_kernels/append_buffer_cell_division_random_displacement.cl", "split_particle");
 
-	cl_float4 particle_1 = {0.0f, 0.0f, 0.0f, 1.0f};
+	cl_float4 particle_1 = {{0.0f, 0.0f, 0.1f, 1.0f}};
 	
 	m_position_1.append(m_command_queue, {particle_1});
 	m_velocity_1.append(m_command_queue, {particle_1});
@@ -35,7 +32,6 @@ CellSystem::~CellSystem() { }
 void CellSystem::build()
 {
 	// Create buffers:
-	
 	
 	//kernel_physics.set_buffers();
 	//m_position_1.

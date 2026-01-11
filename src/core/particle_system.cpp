@@ -1,9 +1,11 @@
+#include "main.h"
+
 #include "core/particle_system.h"
 
 #include <numeric>
+#include <algorithm>
 #include <filesystem>
 #include <CL/opencl.hpp>
-#include <cmath>
 
 #include "core/data_variable.h"
 
@@ -11,11 +13,7 @@
 
 namespace fs = std::filesystem;
 
-ParticleSystem::ParticleSystem(cl::Platform & platform,
-                               cl::Device & device,
-                               cl::Context & context,
-                               cl::CommandQueue & command_queue) : 
-	DataSystem(platform, device, context, command_queue)
+ParticleSystem::ParticleSystem(cl::CommandQueue & command_queue) : DataSystem(command_queue)
 {
 	// Paths:
 	fs::path delete_particles_random = "cl_kernels/delete_particles_random.cl";
@@ -32,6 +30,7 @@ ParticleSystem::ParticleSystem(cl::Platform & platform,
 	particle_count = 1;
 	//particle_count = 0;
 	maximal_cell_count = 32*32*32*32;
+	//maximal_cell_count = 32*32;
 
 	// Get standard functions for growing and shrinking arrays:
 	std::string kernel_code_1 = load_file("cl_kernels/append_buffer.cl");
@@ -51,8 +50,11 @@ ParticleSystem::ParticleSystem(cl::Platform & platform,
 }
 ParticleSystem::~ParticleSystem() { }
 
-void ParticleSystem::setupBuffers()
-{
+const cl::Program& ParticleSystem::getStandardParticleFunctions() {
+	return m_standard_functions;
+}
+
+void ParticleSystem::setupBuffers() {
 	new_cell_indices        = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
 	new_cell_group_size     = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count/workgroup_size);
 	deleted_cell_indices    = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
@@ -61,8 +63,7 @@ void ParticleSystem::setupBuffers()
 	copied_cells            = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
 }
 
-std::vector<event_info> ParticleSystem::customDeletionFunction(cl::Buffer& empty_cells,
-                                            unsigned int& empty_count)
+std::vector<event_info> ParticleSystem::customDeletionFunction(cl::Buffer& empty_cells, unsigned int& empty_count)
 {
 	//std::vector<event_info> info;
 	// TODO: return info vector
@@ -110,7 +111,7 @@ std::vector<event_info> ParticleSystem::deleteMarkedParticles() {
 	m_command_queue.finish();
 	log.add(event_info("READ: deleted cell group size", event_info::read_buffer, event_read_deleted_group_size));
 
-	std::size_t group_count = (particle_count + 255) / 256;  // ceiling division
+	std::size_t group_count = (particle_count + workgroup_size - 1) / workgroup_size;  // ceiling division
 	unsigned int empty_count = std::accumulate(
 		array_cell_deleted_group_size,
 		array_cell_deleted_group_size + group_count,
@@ -146,8 +147,10 @@ std::vector<event_info> ParticleSystem::duplicateMarkedParticles() {
 	// **************************************************** //
 
 	cl::Event event_read_group_size;
+
+	const size_t array_length = maximal_cell_count/workgroup_size;
 	
-	unsigned int array_cell_group_size[maximal_cell_count/workgroup_size];
+	unsigned int array_cell_group_size[array_length];
 	m_command_queue.enqueueReadBuffer(
 		new_cell_group_size,
 		CL_TRUE,
@@ -159,12 +162,14 @@ std::vector<event_info> ParticleSystem::duplicateMarkedParticles() {
 	);
 	m_command_queue.finish();
 
-	copied_count = 0;
-	for(int i=0; i<std::ceil(double(particle_count)/256.0); i++)
-	{
-		copied_count += array_cell_group_size[i];
-		
-	}
+	size_t num_groups = (particle_count + workgroup_size - 1) / workgroup_size;
+	num_groups = std::min(num_groups, static_cast<size_t>(maximal_cell_count / workgroup_size));
+
+	copied_count = std::accumulate(
+		array_cell_group_size,
+		array_cell_group_size + num_groups,
+		0u
+	);
 
 	if(copied_count != 0)
 	{
@@ -220,7 +225,7 @@ unsigned int ParticleSystem::getMaximalParticleCount()
 	return maximal_cell_count;
 }
 
-void ParticleSystem::manageArray(data_buffer::AbstractArray* array)
+void ParticleSystem::manageArray(data_buffer::AbstractParticleData* array)
 {
 	m_managed_arrays.push_back(array);
 }

@@ -1,74 +1,46 @@
 #include "gl_grid_renderer.h"
 #include "shader_tools.h"
-#include "main.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 // Shader code:
-const char * const source_vertex_grid_2d = "#version 400 core\n"
-"attribute vec3 coordinate;"
-"varying vec4 f_color;"
-"uniform mat4 MVP_matrix;"
-"uniform ivec2 grid_repeat;"
-"uniform vec2 grid_shift;"
+const char source_vertex_grid_2d[] = {
+	#embed "shaders/grid.vert"
+	, '\0'
+};
 
+const char source_fragment_grid_2d[] = {
+	#embed "shaders/grid.frag"
+	, '\0'
+};
 
-"void main(void) {"
-	"float pos_x = (gl_InstanceID % grid_repeat.y) - grid_shift.x;"
-	"float pos_y = (gl_InstanceID / grid_repeat.y) - grid_shift.y;"
-	"vec3 new_coordinate = coordinate + vec3(pos_x, pos_y, 0.0);"
+const char source_vertex_axes[] = {
+	#embed "shaders/axes.vert"
+	, '\0'
+};
 
-	"vec4 screen_position = (MVP_matrix * vec4(new_coordinate, 1.0));"
-	"gl_Position = screen_position;"
-	"float screen_z = (-screen_position.z + 2.0) * 2.0;"
+const char source_fragment_axes[] = {
+	#embed "shaders/axes.frag"
+	, '\0'
+};
 
-	"gl_PointSize = 2.0f;"
-	"f_color = vec4(1.0, 0.0, 1, 1);"
-"}";
+const float grid_square[4*12] = {
+	0.01, -1.0, 0.0, 0.0,
+	-0.01, -1.0, 0.0, 0.0,
+	-0.01, 0.0, 0.0, 0.0,
 
-const char * const source_fragment_grid_2d = "#version 400 core\n"
-"varying vec4 f_color;"
-"uniform vec4 grid_color;"
+	-0.01, 0.0, 0.0, 0.0,
+	0.01, -1.0, 0.0, 0.0,
+	0.01, 0.0, 0.0, 0.0,
 
-"void main(void) {"
-    "gl_FragColor = grid_color;"
-"}";
+	0.0, -0.01, 0.0, 0.0,
+	0.0, 0.01, 0.0, 0.0,
+	1.0, 0.01, 0.0, 0.0,
 
-const char * const source_vertex_axes = "#version 400 core\n"
-"attribute vec4 coordinate;"
-"varying vec4 f_color;"
-"uniform mat4 MVP_matrix;"
-
-"void main(void) {"
-	"gl_Position = MVP_matrix * vec4(coordinate.xyz, 1.0);"
-
-	"gl_PointSize = 2.0f;"
-	"f_color = vec4(coordinate.xyz / coordinate.w, 1);"
-"}";
-
-const char * const source_fragment_axes = "#version 400 core\n"
-"varying vec4 f_color;"
-
-"void main(void) {"
-    "gl_FragColor = f_color;"
-"}";
-
-const float grid_square[4*12] = {	0.01, -1.0, 0.0, 0.0,
-								-0.01, -1.0, 0.0, 0.0,
-								-0.01, 0.0, 0.0, 0.0,
-
-								-0.01, 0.0, 0.0, 0.0,
-								0.01, -1.0, 0.0, 0.0,
-								0.01, 0.0, 0.0, 0.0,
-
-								0.0, -0.01, 0.0, 0.0,
-								0.0, 0.01, 0.0, 0.0,
-								1.0, 0.01, 0.0, 0.0,
-
-								1.0, 0.01, 0.0, 0.0,
-								0.0, -0.01, 0.0, 0.0,
-								1.0, -0.01, 0.0, 0.0
-								};
+	1.0, 0.01, 0.0, 0.0,
+	0.0, -0.01, 0.0, 0.0,
+	1.0, -0.01, 0.0, 0.0
+};
 
 const float grid_square_line[4*4] = {
 	0.0, -1.0, 0.0, 0.0,
@@ -77,12 +49,14 @@ const float grid_square_line[4*4] = {
 	0.0, 0.0, 0.0, 0.0,
 };
 
-const float axis_vertices[4*32] = {-1.0, 0.0, 0.0, -1.0,		// x-axis;
-									1.0, 0.0, 0.0, 1.0,
-									0.0, -1.0, 0.0, -1.0,	// y-axis;
-									0.0, 1.0, 0.0, 1.0,
-									0.0, 0.0, -1.0, -1.0,	// z-axis;
-									0.0, 0.0, 1.0, 1.0};		// z-axis;
+const float axis_vertices[4*32] = {
+	-1.0, 0.0, 0.0, -1.0,		// x-axis;
+	1.0, 0.0, 0.0, 1.0,
+	0.0, -1.0, 0.0, -1.0,	// y-axis;
+	0.0, 1.0, 0.0, 1.0,
+	0.0, 0.0, -1.0, -1.0,	// z-axis;
+	0.0, 0.0, 1.0, 1.0
+};		// z-axis;
 
 gl_grid_renderer::gl_grid_renderer()
 {
@@ -207,8 +181,6 @@ void gl_grid_renderer::render(camera gl_camera)
 	glUniform2f(gl_UNI_grid_shift, 40 - glm::floor(gl_camera.camera_target.x / 1.0f), 39 - glm::floor(gl_camera.camera_target.y / 1.0f));
 	glUniformMatrix4fv(gl_UNI_mvp_matrix, 1, GL_FALSE, &gl_MAT_mvp[0][0]);
 	glDrawArraysInstanced(GL_TRIANGLES, 0, 12*4, 80*80);
-
-	
 
 	// Render axes:
 	glUseProgram(gl_SHA_axes);

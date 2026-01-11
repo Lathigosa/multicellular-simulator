@@ -2,8 +2,6 @@
 
 using namespace renderer;
 
-#include <iostream>
-
 #include <CL/cl_gl.h>
 
 #include <glm/gtc/matrix_transform.hpp>

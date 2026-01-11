@@ -4,8 +4,6 @@
 
 #include "render_collection.h"
 
-#include <iostream>
-
 #ifndef NO_UI
 #include <epoxy/gl.h>
 #include <epoxy/glx.h>		// TODO: see if I should switch to egl instead.
@@ -20,12 +18,9 @@ render_collection::render_collection()
 
 void render_collection::init(bool use_gl_context)
 {
-	has_initialized = true;
+	for (const auto& unit : render_units) unit->initialize();
 
-	for(int a=0; a<render_units.size(); a++)
-	{
-		render_units[a]->initialize();
-	}
+	has_initialized = true;
 }
 
 void render_collection::render_all(camera gl_camera)
@@ -36,10 +31,7 @@ void render_collection::render_all(camera gl_camera)
 		return;
 	}
 
-	for(int a=0; a<render_units.size(); a++)
-	{
-		render_units[a]->render(gl_camera);
-	}
+	for (const auto& unit : render_units) unit->render(gl_camera);
 }
 
 void render_collection::finish()
