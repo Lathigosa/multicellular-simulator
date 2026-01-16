@@ -43,7 +43,8 @@ public:
 	
 	virtual std::vector<event_info> customDuplicationFunction(cl::Buffer& empty_particles,
 	                                                          cl::Buffer& copied_particles,
-	                                                          unsigned int& copied_count);
+	                                                          unsigned int& copied_count,
+															  std::vector<cl::Event>& wait_for_events);
 
 	std::vector<event_info> finalizeDuplicationDeletion();
 
@@ -68,20 +69,20 @@ protected:
 	// The buffers are double buffered. buffer_index is 0 or 1 depending on which buffer is active:
 	bool buffer_index = false;
 	
-	cl::Buffer new_cell_indices;		// One list per workgroup keeping track of which indices must be copied.
-	cl::Buffer new_cell_group_size;		// The size of each list in "new_cell_indices".
+	cl::Buffer list_of_particles_to_duplicate;		// One list per workgroup keeping track of which indices must be copied.
+	cl::Buffer new_cell_group_size;					// The size of each list in "list_of_particles_to_duplicate".
 
-	cl::Buffer deleted_cell_indices;	// One list per workgroup keeping track of which indices must be copied.
-	cl::Buffer deleted_cell_group_size;	// The size of each list in "new_cell_indices".
+	cl::Buffer list_of_particles_to_delete;			// One list per workgroup keeping track of which indices must be copied.
+	cl::Buffer deleted_cell_group_size;				// The size of each list in "list_of_particles_to_delete".
 
-	cl::Buffer empty_cells;				// Concatenated list of empty cell indices.
-	cl::Buffer copied_cells;			// Concatenated list of cell indices to be copied.
-	unsigned int copied_count = 0;		// Size of data inside "copied_cells".
+	cl::Buffer concatenated_list_of_particles_to_delete;			// Concatenated list of empty cell indices.
+	cl::Buffer concatenated_list_of_particles_to_duplicate;			// Concatenated list of cell indices to be copied.
+	unsigned int copied_count = 0;					// Size of data inside "copied_cells".
 
 protected:
 	unsigned int particle_count = 0;
 	unsigned int workgroup_size = 256;
-	unsigned int maximal_cell_count = 32*32*8;	// TODO: change value
+	unsigned int maximal_cell_count = 32*32*32;	// TODO: change value
 
 	// Test:
 	int countdown = 64*4;

@@ -12,6 +12,8 @@
 #include "kernels/cell_particle_physics.h"
 #include "kernels/cells_as_dots.h"
 #include "kernels/particle_marker.h"
+#include "renderer/membrane_renderer.hpp"
+#include "cell_simulator/membrane_particle.hpp"
 
 class CellSystem : public ParticleSystem
 {
@@ -46,6 +48,8 @@ private:
 
 	data_buffer::ParticleData<cl_uint16> m_neighbors;					// Indices of neighboring cells.
 
+	ParticleMembraneData m_membrane;
+
 	//data_buffer::ParticleData<cl::array<cl_float4, 256>> m_membrane_vertex_positions;
 	//data_buffer::ParticleData<cl::array<cl_float4, 256>> m_membrane_vertex_normal;
 	//data_buffer::ParticleData<cl::array<cl_ushort2, 512>> m_membrane_edges;
@@ -56,6 +60,7 @@ private:
 
 	// Render functions:
 	position_spheres test_renderer;
+	MembraneRenderer membrane_renderer;
 };
 
 

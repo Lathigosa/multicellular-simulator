@@ -20,10 +20,10 @@ division_random::division_random(	cl::Platform & platform_cl,
 							cl::Context & context,
 							cl::CommandQueue & command_queue) : SimulationUnitTemplate(platform_cl, device_cl, context, command_queue)
 {
-	kernel_random_division = get_kernel_from_file("cl_kernels/sim_cell_division.cl", "membrane_simulate_particles");
+	kernel_random_division = get_kernel_from_file("share/cl_kernels/sim_cell_division.cl", "membrane_simulate_particles");
 
 	// "Concatenate" kernel:
-	kernel_concatenate = get_kernel_from_file("cl_kernels/sim_cell_division2.cl", "concatenate");
+	kernel_concatenate = get_kernel_from_file("share/cl_kernels/sim_cell_division2.cl", "concatenate");
 
 	// Test count:
 	cell_count = 32*32;	// TODO: remove

@@ -80,10 +80,10 @@ protected:
     std::vector<Gtk::ToolButton> tab_buttons;
 
     void on_stack_switcher_pressed(unsigned int tab_index);
-	void on_open_file();
+	  void on_open_file();
 
-	// The currently opened project:
-	simulation_file_object sfo;
+	  // The currently opened project:
+	  simulation_file_object sfo;
 
 private:
 };

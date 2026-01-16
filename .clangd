@@ -78,3 +78,5 @@ CompileFlags:
     - -Wfloat-equal
     - -Wmissing-declarations
     - -Wmissing-include-dirs
+    - -DCL_HPP_ENABLE_EXCEPTIONS
+    - -DCL_HPP_TARGET_OPENCL_VERSION=300

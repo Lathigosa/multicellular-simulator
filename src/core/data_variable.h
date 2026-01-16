@@ -15,6 +15,8 @@
 #ifndef DATA_VARIABLE_H_INCLUDED
 #define DATA_VARIABLE_H_INCLUDED
 
+#include "main.h"
+
 #ifndef NO_UI
 #include <epoxy/gl.h>
 #endif // NO_UI
@@ -91,7 +93,8 @@ namespace data_buffer
 		virtual std::vector<event_info> performDuplication(cl::CommandQueue& queue,
 		                                           cl::Buffer empty_particles,
 		                                           cl::Buffer copied_particles,
-		                                           unsigned int copied_count) = 0;
+		                                           unsigned int copied_count,
+												   std::vector<cl::Event>& wait_for_events) = 0;
 
 		/**
          * @brief Delete elements from the array using a GPU kernel.
@@ -127,7 +130,7 @@ namespace data_buffer
 	public:
 		size_t entry_size() const override {
 			if constexpr (is_cl_array<T>::value) {
-				return sizeof(typename T::value_type)*T::size();
+				return sizeof(typename T::value_type) * std::tuple_size<T>::value;
 			} else {
 				return sizeof(T);
 			}
@@ -179,14 +182,16 @@ namespace data_buffer
 			initialize_standard_kernels(parent_system.getStandardParticleFunctions());
 		}
 
-		void initialize_standard_kernels(cl::Program& standard_functions)
+		void initialize_standard_kernels(const cl::Program& standard_functions)
 		{
 			if constexpr (is_cl_array<T>::value) {
 				duplication_kernel = cl::Kernel(standard_functions, ("append_particles_array_" + std::to_string(sizeof(typename T::value_type))).c_str());
+				message_debug("Created kernel named ", "append_particles_array_" + std::to_string(sizeof(typename T::value_type)), " with index ", duplication_kernel.get());
 				// TODO: fix deletion kernel!!
 				deletion_kernel = cl::Kernel(standard_functions, ("delete_particles_" + std::to_string(sizeof(typename T::value_type))).c_str());
 			} else {
 				duplication_kernel = cl::Kernel(standard_functions, ("append_particles_" + std::to_string(entry_size())).c_str());
+				message_debug("Created kernel named ", "append_particles_" + std::to_string(entry_size()), " with index ", duplication_kernel.get());
 				deletion_kernel = cl::Kernel(standard_functions, ("delete_particles_" + std::to_string(entry_size())).c_str());
 			}
 		}
@@ -210,9 +215,23 @@ namespace data_buffer
 			if(values.size() + m_used_count > m_max_count)
 				return;
 
+			message_debug(
+				"entry_size()*values.size() = ", entry_size()*values.size(),
+				"entry_size() = ", entry_size(),
+				"values.size() = ", values.size()
+			);
+
 			// TODO: write to front or back buffer?
-			// queue.enqueueWriteBuffer(getFrontBuffer(), CL_FALSE, 0, sizeof(T)*values.size(), &values[0]);
-			queue.enqueueWriteBuffer(getBackBuffer(), CL_FALSE, 0, sizeof(T)*values.size(), &values[0]);
+			try {
+				queue.enqueueWriteBuffer(getFrontBuffer(), CL_FALSE, 0, entry_size()*values.size(), &values[0]);
+				queue.enqueueWriteBuffer(getBackBuffer(), CL_FALSE, 0, entry_size()*values.size(), &values[0]);
+			} catch (const cl::Error& error) {
+				message_debug("error:", error.err());
+				throw error;
+			}
+			
+
+			// swapBuffers();
 
 			m_used_count += values.size();
 		}
@@ -228,7 +247,7 @@ namespace data_buffer
 
 			if (!VBO_needs_refresh) return VBO;
 
-			const size_t bytes = m_used_count * sizeof(T);
+			const size_t bytes = m_used_count * entry_size();
 			if (bytes == 0) return VBO;
 
 			std::vector<std::byte> transfer_array(bytes);
@@ -243,10 +262,12 @@ namespace data_buffer
 		}
 
 		std::vector<event_info> performDuplication(cl::CommandQueue& queue,
-		                                           cl::Buffer indices_of_particles_to_delete,
-		                                           cl::Buffer indices_of_particles_to_copy,
-		                                           unsigned int amount_of_particles_to_copy) override
+		                                           cl::Buffer list_of_particles_to_delete,
+		                                           cl::Buffer list_of_particles_to_copy,
+		                                           unsigned int amount_of_particles_to_copy,
+												   std::vector<cl::Event>& wait_for_events) override
 		{
+			EventLog log;
 			// Make sure there is no buffer overflow:
 			if(m_used_count + amount_of_particles_to_copy > m_max_count)
 				return {};
@@ -254,19 +275,58 @@ namespace data_buffer
 
 			// Perform the custom duplication function, if it exists:
 			cl::Kernel active_kernel = (m_duplication_function != nullptr)
-                                     ? m_duplication_function(amount_of_particles_to_copy)
-                                     : duplication_kernel;
+									? m_duplication_function(amount_of_particles_to_copy)
+									: duplication_kernel;
+			
+			cl::Event duplication_kernel_finished;
+			cl::Event copy_event;
+
+			queue.enqueueCopyBuffer(getFrontBuffer(), getBackBuffer(), 0, 0, m_used_count*entry_size(), nullptr, &copy_event);
+
+			std::vector<cl::Event> dependencies_for_duplication_kernel = { copy_event };
+			for (auto& event : wait_for_events)
+			{
+				dependencies_for_duplication_kernel.push_back(event);
+			}
 
 			// Set the standard arguments and run the kernel:
-			active_kernel.setArg(0, getBackBuffer());
-			active_kernel.setArg(1, indices_of_particles_to_copy);
-			active_kernel.setArg(2, m_used_count);
-			
-			queue.enqueueNDRangeKernel(active_kernel, cl::NullRange, cl::NDRange(amount_of_particles_to_copy), cl::NullRange);
+			active_kernel.setArg(0, getFrontBuffer());
+			active_kernel.setArg(1, getBackBuffer());
+			active_kernel.setArg(2, list_of_particles_to_copy);
+			active_kernel.setArg(3, (int)m_used_count);
+
+			cl::NDRange global_range;
+			if constexpr (is_cl_array<T>::value) {
+				global_range = cl::NDRange(std::tuple_size<T>::value, amount_of_particles_to_copy);
+			} else {
+				global_range = cl::NDRange(amount_of_particles_to_copy);
+			}
+
+			queue.enqueueNDRangeKernel(
+				active_kernel,
+				cl::NullRange,
+				global_range,
+				cl::NullRange,
+				&dependencies_for_duplication_kernel,
+				&duplication_kernel_finished
+			);
+
+			std::vector<cl::Event> dependencies_for_memory_barrier = { duplication_kernel_finished };
+
+			queue.enqueueBarrierWithWaitList(
+				&dependencies_for_memory_barrier,
+				nullptr
+			);
+
+			//message_debug("A m_used_count = ", m_used_count, ", amount_of_particles_to_copy = ", amount_of_particles_to_copy);
+
+			swapBuffers();
 			
 			m_used_count += amount_of_particles_to_copy;
 			
-			return {};
+			log.add(event_info("PARTICLE_DATA: front_to_back_buffer_copy_event_before_duplication", event_info::kernel, copy_event));
+			log.add(event_info("PARTICLE_DATA: duplication_kernel", event_info::kernel, duplication_kernel_finished));
+			return std::move(log.get());
 		}
 
 		std::vector<event_info> performDeletion(cl::CommandQueue& queue,
@@ -284,7 +344,6 @@ namespace data_buffer
                                      : deletion_kernel;
 
 			// Set the standard arguments and run the kernel:
-			// TODO: why isn't this double buffered?
 			active_kernel.setArg(0, getBackBuffer());
 			active_kernel.setArg(1, getBackBuffer());
 			active_kernel.setArg(2, indices_of_particles_to_delete);
@@ -292,6 +351,8 @@ namespace data_buffer
 			active_kernel.setArg(4, amount_of_particles_to_delete);
 			
 			queue.enqueueNDRangeKernel(active_kernel, cl::NullRange, cl::NDRange(amount_of_particles_to_delete), cl::NullRange);
+
+			//swapBuffers();
 
 			m_used_count -= amount_of_particles_to_delete;
 	

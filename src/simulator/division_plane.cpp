@@ -24,7 +24,7 @@ division_plane::division_plane(	cl::Platform & platform_cl,
 					cl::CommandQueue & command_queue) : particle_template(platform_cl, device_cl, context, command_queue)
 {
 	// TODO: remove:
-	kernel_append_buffer = get_kernel_from_file("cl_kernels/append_buffer.cl", "append_buffer");
+	kernel_append_buffer = get_kernel_from_file("share/append_buffer.cl", "append_buffer");
 }
 
 division_plane::~division_plane()

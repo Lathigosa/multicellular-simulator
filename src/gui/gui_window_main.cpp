@@ -5,6 +5,7 @@
 
 #include <string>
 #include <gtkmm/image.h>
+#include <glibmm.h>
 
 #include "gui_plane_cell_view.h"
 #include "gui_plane_neural_network_view.h"
@@ -90,15 +91,10 @@ void gui_window::on_open_file()
 	message_notify("Opened file");
 	try
     {
-		//sfo.world->running = false;
-        //sfo.open_file("test_lua_code.lua");
 		planes[0]->signal_initialize();
 
 		sfo.world->running = true;
-		//for(int i=0; i<8; i++)
-		//{
-			sfo.world->simulate_all();
-		//}
+		sfo.world->simulate_all();
 		
 		sfo.world->flush();
     }

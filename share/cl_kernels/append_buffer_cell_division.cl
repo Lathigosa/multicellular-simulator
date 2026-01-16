@@ -30,7 +30,8 @@
 // (1/2)^(1/3) \approx 0.793700526
 #define RADIUS_SCALE_FACTOR 0.793700526f
 
-kernel void split_particle(	global float4* out_buffer,
+kernel void split_particle(	global float4* in_buffer,
+							global float4* out_buffer,
 							global const uint* in_marked_particles,
 							int first_empty_element_in_array,
 							global const float4* in_particle_division_axis)
@@ -39,7 +40,7 @@ kernel void split_particle(	global float4* out_buffer,
 	size_t old_particle_index = in_marked_particles[get_global_id(0)];
 
 	float4 division_axis = in_particle_division_axis[get_global_id(0)];
-	float3 current_position = out_buffer[old_particle_index].xyz;
+	float3 current_position = in_buffer[old_particle_index].xyz;
 	
 	//TODO: perhaps double buffer to prevent race conditions!!!
 	float new_size = out_buffer[old_particle_index].w * RADIUS_SCALE_FACTOR;	// Multiply by 1/2^(1/3) to preserve volume.

@@ -19,8 +19,8 @@ membrane::membrane(	cl::Platform & platform_cl,
 					cl::Context & context,
 					cl::CommandQueue & command_queue) : particle_template(platform_cl, device_cl, context, command_queue)
 {
-	std::string kernel_code = load_file("cl_kernels/cell_hookian_repel.cl");
-	std::string kernel_code3 = load_file("cl_kernels/sort_particles_in_3d_grid.cl");
+	std::string kernel_code = load_file("share/cl_kernels/cell_hookian_repel.cl");
+	std::string kernel_code3 = load_file("share/cl_kernels/sort_particles_in_3d_grid.cl");
 
 	sources_membrane_physics.push_back({kernel_code3.c_str(), kernel_code3.length()});
 	sources_membrane_physics.push_back({kernel_code.c_str(), kernel_code.length()});
@@ -35,8 +35,8 @@ membrane::membrane(	cl::Platform & platform_cl,
 
 	kernel_membrane_physics = cl::Kernel(program_membrane_physics, "cell_hookian_repel");
 	
-	kernel_append_buffer = get_kernel_from_file("cl_kernels/append_buffer_cell_division.cl", "append_buffer");
-	kernel_sort_particles = get_kernel_from_file("cl_kernels/sort_particles_in_3d_grid.cl", "spatial_particle_sort_3d");
+	kernel_append_buffer = get_kernel_from_file("share/cl_kernels/append_buffer_cell_division.cl", "append_buffer");
+	kernel_sort_particles = get_kernel_from_file("share/cl_kernels/sort_particles_in_3d_grid.cl", "spatial_particle_sort_3d");
 						
 	kernel_sort_particles.getWorkGroupInfo(device, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, &wg_size);
 }

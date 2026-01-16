@@ -5,9 +5,10 @@
 // Scale factor for splitting a particle into two smaller particles
 // such that the combined volume of the children equals the parent.
 // (1/2)^(1/3) \approx 0.793700526
-#define RADIUS_SCALE_FACTOR 0.793700526f
+#define HALF_VOLUME_RADIUS_SCALE 0.793700526f
 
-kernel void split_particle(	global float4* out_buffer,
+kernel void split_particle( global const float4* in_buffer,
+							global float4* out_buffer,
 							global uint* in_marked_particles,
 							int first_empty_element_in_array,
 							uint2 seed)
@@ -16,10 +17,12 @@ kernel void split_particle(	global float4* out_buffer,
 	size_t old_particle_index = in_marked_particles[get_global_id(0)];
 
 	//TODO: perhaps double buffer to prevent race conditions!!!
-	float child_particle_radius = out_buffer[old_particle_index].w * RADIUS_SCALE_FACTOR;	// Multiply by 1/2^(1/3) to preserve volume.
-	float3 current_position = out_buffer[old_particle_index].xyz;
+	float child_particle_radius = in_buffer[old_particle_index].w * HALF_VOLUME_RADIUS_SCALE;	// Multiply by 1/2^(1/3) to preserve volume.
+	float3 current_position = in_buffer[old_particle_index].xyz;
 	
-	float2 angles = generate_random_float(seed, (uint2)(0, 0));
+	uint gid = get_global_id(0);
+
+	float2 angles = generate_random_float(seed, (uint2)(gid, gid * 1664525u));
 	angles.x = angles.x * M_PI_F;
 	angles.y = acos(1.0f - angles.y * 2.0f);
 	const float sin_a = sin(angles.x);
@@ -31,6 +34,11 @@ kernel void split_particle(	global float4* out_buffer,
 	
 	out_buffer[new_particle_index] = (float4)(current_position - division_axis, child_particle_radius);
 	out_buffer[old_particle_index] = (float4)(current_position + division_axis, child_particle_radius);
+
+	//if(get_global_id(0) == 0)
+	//{
+	//	printf("GPU Kernel: Cell division random displacement\n", old_particle_index, " ", new_particle_index);
+	//}
 };
 
 // This kernel keeps track of any new membrane vertices, edges or faces as well:

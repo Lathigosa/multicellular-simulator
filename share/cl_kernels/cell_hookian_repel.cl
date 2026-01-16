@@ -3,10 +3,10 @@
 // !! Makes use of "sort_particles_in_3d_grid.cl" !! //
 
 kernel void cell_hookian_repel(
-	global float4* out_position,
-	global float4* out_velocity,
 	global const float4* in_position,
 	global const float4* in_velocity,
+	global float4* out_position,
+	global float4* out_velocity,
 	global const uint* in_grid,				// Used for optimization.
 	global const uint* in_grid_counter,		// Used for optimization.
 	private int count,
@@ -115,11 +115,16 @@ kernel void cell_hookian_repel(
 	// Calculate velocity (based on timestep):
 	//my_acceleration = my_acceleration - in_velocity[get_global_id(0)].xyz * 0.1f;
 	//float3 my_velocity = in_velocity[get_global_id(0)].xyz + (timestep * my_acceleration);
-	float3 my_velocity = (timestep * my_acceleration); // + (float3)(0.0f, 0.0f, 0.1f);
+	float3 my_velocity = (timestep * my_acceleration); // + (float3)(0.01f, 0.02f, 0.1f);
 	my_position = my_position + (timestep * my_velocity);
 
 	// Upload the values:
 	out_velocity[get_global_id(0)] = (float4) (my_velocity, 1.0f); // Velocity Damping
 	out_position[get_global_id(0)] = (float4) (my_position, min(my_size + 0.006f * timestep, 2.0f));
 	//"out_position[get_global_id(0)] = (float4) (0.0f, 1.0f, 2.0f, 1.0f);"
+
+	//if(get_global_id(0) == 0)
+	//{
+	//	printf("Hookian repel");
+	//}
 }

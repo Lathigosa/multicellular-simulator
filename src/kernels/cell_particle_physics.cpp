@@ -32,8 +32,8 @@ void cell_particle_physics::build()
 	std::string options = opts.str();
 
 	// Load kernel files and compile them:
-	std::string kernel_code1 = load_file("cl_kernels/cell_hookian_repel.cl");
-	std::string kernel_code2 = load_file("cl_kernels/sort_particles_in_3d_grid.cl");
+	std::string kernel_code1 = load_file("share/cl_kernels/cell_hookian_repel.cl");
+	std::string kernel_code2 = load_file("share/cl_kernels/sort_particles_in_3d_grid.cl");
 
 	cl::Program::Sources sources_membrane_physics;
 
@@ -56,7 +56,7 @@ void cell_particle_physics::build()
 	kernel_membrane_physics = cl::Kernel(program_membrane_physics, "cell_hookian_repel");
 	kernel_sort_particles = cl::Kernel(program_membrane_physics, "spatial_particle_sort_3d");
 	
-	kernel_append_buffer = get_kernel_from_file("cl_kernels/append_buffer_cell_division.cl", "append_buffer");
+	kernel_append_buffer = get_kernel_from_file("share/cl_kernels/append_buffer_cell_division.cl", "split_particle");
 						
 	kernel_sort_particles.getWorkGroupInfo(m_device, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, &wg_size);
 
@@ -73,6 +73,8 @@ std::vector<event_info> cell_particle_physics::run(data_buffer::ParticleData<cl_
                                                    const data_buffer::ParticleData<cl_float>& radius_2,
                                                    unsigned int particle_count)
 {
+	cl::Event event_clean_grid_with_particles;
+	cl::Event event_clean_grid_with_particles_count;
 	cl::Event event_sort_particles;
 	cl::Event event_physics;
 
@@ -87,7 +89,7 @@ std::vector<event_info> cell_particle_physics::run(data_buffer::ParticleData<cl_
 		0,
 		sizeof(cl_uint)*16*grid_size_x*grid_size_y*grid_size_z,
 		nullptr,
-		nullptr
+		&event_clean_grid_with_particles
 	);
 	cl_uint fill_pattern_uint_zero = 0;
 	m_command_queue.enqueueFillBuffer(
@@ -96,24 +98,31 @@ std::vector<event_info> cell_particle_physics::run(data_buffer::ParticleData<cl_
 		0,
 		sizeof(cl_uint)*grid_size_x*grid_size_y*grid_size_z,
 		nullptr,
-		nullptr
+		&event_clean_grid_with_particles_count
 	);
 
 	auto range = (unsigned int)(wg_size*ceil(double(particle_count)/double(wg_size)));
 
+	std::vector<cl::Event> dependencies_for_kernel_sort_particles = { 
+		event_clean_grid_with_particles_count,
+		event_clean_grid_with_particles
+	};
+
 	// Sort particles into voxels:
 	kernel_sort_particles.setArg(0, grid_with_particles);
 	kernel_sort_particles.setArg(1, grid_with_particles_count);
-	kernel_sort_particles.setArg(2, position_1.getBackBuffer());
+	kernel_sort_particles.setArg(2, position_1.getFrontBuffer());
 	kernel_sort_particles.setArg(3, particle_count);
 	m_command_queue.enqueueNDRangeKernel(
 		kernel_sort_particles,
 		cl::NullRange,
 		cl::NDRange(range),
 		cl::NullRange,
-		nullptr,
+		&dependencies_for_kernel_sort_particles,
 		&event_sort_particles
 	);
+
+	std::vector<cl::Event> dependencies_for_kernel_membrane_physics = { event_sort_particles };
 	
 	// Simulate physics:
 	kernel_membrane_physics.setArg(0, position_1.getFrontBuffer());
@@ -128,8 +137,15 @@ std::vector<event_info> cell_particle_physics::run(data_buffer::ParticleData<cl_
 		cl::NullRange,
 		cl::NDRange(range),
 		cl::NullRange,
-		nullptr,
+		&dependencies_for_kernel_membrane_physics,
 		&event_physics
+	);
+
+	std::vector<cl::Event> dependencies_for_memory_barrier = { event_physics };
+
+	m_command_queue.enqueueBarrierWithWaitList(
+		&dependencies_for_memory_barrier,
+		nullptr
 	);
 
 	// TODO: enqueuebarrier!!!

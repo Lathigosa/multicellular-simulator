@@ -19,8 +19,8 @@ particle_template::particle_template(	cl::Platform & platform_cl,
 					cl::Context & context,
 					cl::CommandQueue & command_queue) : SimulationUnitTemplate(platform_cl, device_cl, context, command_queue)
 {
-	kernel_append_buffer = get_kernel_from_file("cl_kernels/append_buffer.cl", "append_buffer");
-	delete_particles_float4 = get_kernel_from_file("cl_kernels/delete_particles.cl", "delete_particles_float4");
+	kernel_append_buffer = get_kernel_from_file("share/cl_kernels/append_buffer.cl", "append_buffer");
+	delete_particles_float4 = get_kernel_from_file("share/cl_kernels/delete_particles.cl", "delete_particles_float4");
 						
 						
 	// Test count:

@@ -3,26 +3,21 @@
 #define GROUP_SIZE 256
 
 kernel void concatenate(global uint* out_new_cells,
-						global uint* in_new_cells,
-						global uint* in_new_cell_group_size)
+						global const uint* in_new_cells,
+						global const uint* in_new_cell_group_size)
 {
-	uint count = in_new_cell_group_size[get_global_id(0)];
-	uint offset = 0;
+	uint local_count = in_new_cell_group_size[get_group_id(0)];
+	uint local_offset = 0;
 
 	// Get the offset by adding up all the sizes produced in the array:
-
-	for(uint i=get_global_id(0); i<get_global_size(0); i++)
+	for(uint i=0; i<get_group_id(0); i++)
 	{
-		offset = offset + in_new_cell_group_size[i];
+		local_offset += in_new_cell_group_size[i];
 	}
 
-
-
-	offset = offset - count;
-
 	// Perform concatenation:
-	for(uint i=0; i<count; i++)
+	if(get_local_id(0) < local_count)
 	{
-		out_new_cells[offset + i] = in_new_cells[get_global_id(0) * GROUP_SIZE + i];
+		out_new_cells[local_offset + get_local_id(0)] = in_new_cells[get_global_id(0)];
 	}
 };

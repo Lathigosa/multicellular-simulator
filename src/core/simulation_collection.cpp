@@ -62,6 +62,7 @@ void simulation_world::init(bool use_gl_context)
 	default_device = all_devices[0];
 	message_notify("Using device: " << default_device.getInfo<CL_DEVICE_NAME>());
 	message_notify("Version: " << default_device.getInfo<CL_DEVICE_VERSION>());
+	message_notify("Max memory allocation size: " << default_device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>());
 
 	// If the device version does not match the OpenCL version used here:
 

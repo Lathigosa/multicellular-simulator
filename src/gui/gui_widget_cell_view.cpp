@@ -1,4 +1,6 @@
 #include "gui_widget_cell_view.h"
+#include "gdk/gdk.h"
+#include "gdkmm/glcontext.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 
@@ -9,14 +11,24 @@
 
 #include <glibmm.h>
 
-gui_widget_cell_view::gui_widget_cell_view(simulation_file_object& ref) : sandbox(),
-																		sfo(ref)
+gui_widget_cell_view::gui_widget_cell_view(simulation_file_object& ref) : sfo(ref)
 {
 	// Enable mouse-events:
     gl_area.add_events(Gdk::BUTTON_PRESS_MASK);
     gl_area.add_events(Gdk::POINTER_MOTION_MASK);
     gl_area.add_events(Gdk::BUTTON_RELEASE_MASK);
     gl_area.add_events(Gdk::SCROLL_MASK);
+
+	// Must be called BEFORE realize(), i.e., in the constructor
+	//gl_area.set_required_version(4, 3);       // Desktop OpenGL 4.3+
+	//gl_area.set_use_es(false);                 // Not OpenGL ES
+	//gl_area.set_has_depth_buffer(true);
+	//gl_area.set_has_stencil_buffer(true);
+	
+	gl_area.signal_create_context().connect(sigc::mem_fun(*this, &gui_widget_cell_view::on_create_context));
+	//gl_area.signal_create_context().connect_notify([&]() {
+    //	gl_area.get_context()->set_debug_enabled(true); // MUST be before realization
+	//});
 
     // Connect gl area signals
     gl_area.signal_realize().connect(sigc::mem_fun(*this, &gui_widget_cell_view::realize));
@@ -43,6 +55,9 @@ gui_widget_cell_view::gui_widget_cell_view(simulation_file_object& ref) : sandbo
     gl_area.set_vexpand(true);
     //gl_area.set_auto_render(true);
 
+	//cell_count_label.set_label("Test");
+
+	//add(cell_count_label);
     add(gl_area);
     gl_area.show();
 
@@ -63,6 +78,23 @@ gui_widget_cell_view::gui_widget_cell_view(simulation_file_object& ref) : sandbo
 gui_widget_cell_view::~gui_widget_cell_view()
 {
     //dtor
+}
+
+Glib::RefPtr<Gdk::GLContext> gui_widget_cell_view::on_create_context()
+{
+	// TODO: find out why this function doesn't run?
+	message_debug("Creating GL context");
+	GError* error = nullptr;
+	auto raw_context = gdk_window_create_gl_context(gl_area.get_window()->gobj(), &error);
+	if (!raw_context) {
+		// something went wrong
+		g_print("Failed to create GL context: %s\n", error->message);
+		g_error_free(error);
+	}
+	g_print("Created GL context \n");
+	Glib::RefPtr<Gdk::GLContext> context = Glib::wrap(raw_context);
+	context->set_debug_enabled(true);
+	return context;
 }
 
 bool gui_widget_cell_view::button_press_event(GdkEventButton* event)
@@ -203,9 +235,54 @@ bool gui_widget_cell_view::button_release_event(GdkEventButton* event)
 	return true;
 }
 
+// Example debug callback
+void APIENTRY gl_debug_callback(GLenum source,
+                                GLenum type,
+                                GLuint id,
+                                GLenum severity,
+                                GLsizei length,
+                                const GLchar* message,
+                                const void* userParam)
+{
+    std::cerr << "[GL DEBUG] source=" << source
+              << " type=" << type
+              << " id=" << id
+              << " severity=" << severity
+              << " message=" << message
+              << std::endl;
+
+    // Optionally abort on high-severity errors
+    if (severity == GL_DEBUG_SEVERITY_HIGH)
+        std::abort();
+}
+
+void enable_gl_debug()
+{
+    // Make sure you have a current OpenGL context here
+    GLint flags;
+    glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+    {
+        glEnable(GL_DEBUG_OUTPUT);             // Enable debug output
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS); // Makes callback synchronous
+        glDebugMessageCallback(gl_debug_callback, nullptr); // Set callback
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE,
+                              0, nullptr, GL_TRUE);          // Enable all messages
+        std::cout << "OpenGL debug output enabled.\n";
+    }
+    else
+    {
+        std::cerr << "Warning: OpenGL context is not a debug context.\n";
+    }
+}
+
 void gui_widget_cell_view::realize()
 {
+	message_debug("Realizing GL Context");
     gl_area.make_current();
+	//enable_gl_debug();
+	//glDisable(0xDEADBEEF);        // invalid enum -> GL_INVALID_ENUM
+	
     try
     {
         gl_area.throw_if_error();
@@ -301,6 +378,7 @@ void gui_widget_cell_view::unrealize()
 
 bool gui_widget_cell_view::render(const Glib::RefPtr<Gdk::GLContext>& this_context)
 {
+	//cell_count_label.set_label("Current amount of cells: ", sfo.world->);
     try
     {
 		has_rendered = true;
@@ -338,8 +416,8 @@ bool gui_widget_cell_view::render(const Glib::RefPtr<Gdk::GLContext>& this_conte
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer_standard);
 		glBlitFramebuffer(0, 0, gl_area.get_width(), gl_area.get_height(), 0, 0, gl_area.get_width(), gl_area.get_height(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
         glFlush();
 

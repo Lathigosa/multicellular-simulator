@@ -19,7 +19,7 @@ find_closest_cells::find_closest_cells(	cl::Platform & platform_cl,
 					cl::Context & context,
 					cl::CommandQueue & command_queue) : SimulationUnitTemplate(platform_cl, device_cl, context, command_queue)
 {
-	std::string kernel_code = load_file("cl_kernels/find_16_closest_points.cl");
+	std::string kernel_code = load_file("share/cl_kernels/find_16_closest_points.cl");
 						
 	sources_membrane_physics.push_back({kernel_code.c_str(), kernel_code.length()});
 

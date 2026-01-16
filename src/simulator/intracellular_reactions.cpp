@@ -24,9 +24,9 @@ intracellular_reactions::intracellular_reactions(	cl::Platform & platform_cl,
 					cl::CommandQueue & command_queue) : particle_template(platform_cl, device_cl, context, command_queue)
 {
 	// TODO: remove next line, the kernel gets constructed from something else instead:
-	kernel_membrane_physics = get_kernel_from_file("cl_kernels/intracellular_reactions.cl", "simulate_reactions");
+	kernel_membrane_physics = get_kernel_from_file("share/cl_kernels/intracellular_reactions.cl", "simulate_reactions");
 	kernel_membrane_physics.getWorkGroupInfo(device, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, &wg_size);
-	kernel_append_buffer = get_kernel_from_file("cl_kernels/append_buffer.cl", "append_buffer");
+	kernel_append_buffer = get_kernel_from_file("share/cl_kernels/append_buffer.cl", "append_buffer");
 
 	// Test count:
 	//particle_count = 1*1; 	// TODO: remove

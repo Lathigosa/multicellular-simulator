@@ -10,20 +10,26 @@ CellSystem::CellSystem(cl::CommandQueue & command_queue)
 						   "if (random_variable.x < (0xFFFFFFFF / 4000)) MARK_DUPLICATE;"
 						   "if (random_variable.y < (0xFFFFFFFF / 4000)) MARK_DELETE;"
 						)
-	, m_position_1(*this, [this](unsigned int) -> cl::Kernel { position_duplicator.setArg(3, (unsigned long)std::rand()); return position_duplicator; })
+	, m_position_1(*this, [this](unsigned int) -> cl::Kernel {
+		position_duplicator.setArg(4, (unsigned long)std::rand());
+		//message_debug("Running splitter.");
+		return position_duplicator;
+	})
 	, m_velocity_1(*this)
 	, m_radius_1(*this)
-	, m_neighbors(*this, [this](unsigned int) -> cl::Kernel { return neighbors_duplicator; })
+	, m_neighbors(*this)
+	, m_membrane(*this)
 	//m_membrane_vertex_positions(*this, m_standard_functions),
 	
 {
-	position_duplicator = get_kernel_from_file("cl_kernels/append_buffer_cell_division_random_displacement.cl", "split_particle");
+	position_duplicator = get_kernel_from_file("share/cl_kernels/append_buffer_cell_division_random_displacement.cl", "split_particle");
 
 	cl_float4 particle_1 = {{0.0f, 0.0f, 0.1f, 1.0f}};
-	
+
 	m_position_1.append(m_command_queue, {particle_1});
 	m_velocity_1.append(m_command_queue, {particle_1});
 	m_radius_1.append(m_command_queue, {1.0f});
+	m_membrane.addIcosphereParticle(m_command_queue);
 	m_command_queue.finish();
 }
 
@@ -51,9 +57,9 @@ std::vector<event_info> CellSystem::calculatePhysicsStep() {
 
 std::vector<event_info> CellSystem::markParticlesForDivisionOrDeletion() {
 	return kernel_particle_marker.run(
-		new_cell_indices,
+		list_of_particles_to_duplicate,
 		new_cell_group_size,
-		copied_cells,
+		concatenated_list_of_particles_to_duplicate,
 		particle_count
 	);
 }
@@ -70,11 +76,13 @@ std::vector<event_info> CellSystem::run()
 void CellSystem::initialize_render()
 {
 	test_renderer.initialize(m_position_1, m_command_queue);
+	//membrane_renderer.initialize(m_membrane, m_command_queue);
 }
 
 void CellSystem::render(camera gl_camera)
 {
 	test_renderer.render(gl_camera, m_position_1, m_command_queue);
+	//membrane_renderer.render(gl_camera, m_membrane, m_command_queue);
 }
 
 

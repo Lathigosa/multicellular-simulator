@@ -20,8 +20,8 @@ division_after_concentration_treshold::division_after_concentration_treshold(	cl
 							cl::Context & context,
 							cl::CommandQueue & command_queue) : particle_template(platform_cl, device_cl, context, command_queue)
 {
-	kernel_random_division = get_kernel_from_file("cl_kernels/division_due_to_concentration_treshold.cl", "simulate_division");
-	kernel_concatenate = get_kernel_from_file("cl_kernels/sim_cell_division2.cl", "concatenate");
+	kernel_random_division = get_kernel_from_file("share/cl_kernels/division_due_to_concentration_treshold.cl", "simulate_division");
+	kernel_concatenate = get_kernel_from_file("share/cl_kernels/sim_cell_division2.cl", "concatenate");
 }
 
 division_after_concentration_treshold::~division_after_concentration_treshold()

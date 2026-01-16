@@ -20,8 +20,8 @@ cell_death_barrier::cell_death_barrier(	cl::Platform & platform_cl,
 							cl::Context & context,
 							cl::CommandQueue & command_queue) : particle_template(platform_cl, device_cl, context, command_queue)
 {
-	kernel_random_death = get_kernel_from_file("cl_kernels/delete_particles_random.cl", "membrane_simulate_particles");
-	kernel_concatenate = get_kernel_from_file("cl_kernels/sim_cell_division2.cl", "concatenate");
+	kernel_random_death = get_kernel_from_file("share/cl_kernels/delete_particles_random.cl", "membrane_simulate_particles");
+	kernel_concatenate = get_kernel_from_file("share/cl_kernels/sim_cell_division2.cl", "concatenate");
 }
 
 cell_death_barrier::~cell_death_barrier()

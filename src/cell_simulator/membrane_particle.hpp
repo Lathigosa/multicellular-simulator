@@ -10,13 +10,10 @@ class ParticleMembraneData : public data_buffer::ParticleData<cl::array<cl_float
 public:
     static constexpr size_t max_vertices_per_cell = 256;
 
-    ParticleMembraneData(ParticleSystem& parent_system)
-        : data_buffer::ParticleData<cl::array<cl_float4, 256>>(parent_system)
-    {
-        
-    }
+    ParticleMembraneData(ParticleSystem& parent_system);
 
-    void generateIcosphere();
+    void addIcosphereParticle(cl::CommandQueue& queue);
+
 private:
 };
 

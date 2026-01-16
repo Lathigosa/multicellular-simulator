@@ -23,9 +23,9 @@ cell_global::cell_global(	cl::Platform & platform_cl,
 							cl::CommandQueue & command_queue) : SimulationUnitTemplate(platform_cl, device_cl, context, command_queue)
 {
 	// Load kernels:
-	kernel_random_deletion = get_kernel_from_file("cl_kernels/delete_particles_random.cl", "membrane_simulate_particles");
-	kernel_concatenate = get_kernel_from_file("cl_kernels/sim_cell_division2.cl", "concatenate");
-	kernel_delete_sort = get_kernel_from_file("cl_kernels/delete_particles.cl", "sort_deleted_list");
+	kernel_random_deletion = get_kernel_from_file("share/cl_kernels/delete_particles_random.cl", "membrane_simulate_particles");
+	kernel_concatenate = get_kernel_from_file("share/cl_kernels/sim_cell_division2.cl", "concatenate");
+	kernel_delete_sort = get_kernel_from_file("share/cl_kernels/delete_particles.cl", "sort_deleted_list");
 
 	// Test count:
 	cell_count = 32*32;	// TODO: remove

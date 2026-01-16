@@ -8,7 +8,7 @@
 #include <memory>
 
 
-
+#include <gtkmm/label.h>
 #include <gtkmm/glarea.h>
 #include <gtkmm/hvbox.h>
 
@@ -52,6 +52,8 @@ class gui_widget_cell_view : public Gtk::VBox
 
 
     private:
+		Glib::RefPtr<Gdk::GLContext> on_create_context();
+
 		// Boolean that makes sure the opencl code does not block rendering:
 		bool has_rendered = false;
 		unsigned int framerate_counter = 0;
@@ -92,11 +94,12 @@ class gui_widget_cell_view : public Gtk::VBox
 		cl::Context opencl_context;
 		cl::CommandQueue queue;
 		//simulation::membrane membrane;
-		simulation::simulation_world sandbox;
+		//simulation::simulation_world sandbox;
 		//std::unique_ptr<simulation_file_object> sfo;
 
 		// The currently opened project:
 		simulation_file_object& sfo;
+		//Gtk::Label cell_count_label;
 };
 
 #endif // GUI_WIDGET_CELL_VIEW_H

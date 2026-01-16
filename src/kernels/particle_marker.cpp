@@ -17,7 +17,7 @@ ParticleMarker::~ParticleMarker() { }
 
 void ParticleMarker::build(const std::string marker_code)
 {
-	std::string kernel_code = load_file("cl_kernels/snippet_particle_duplication/particle_duplication.cl");
+	std::string kernel_code = load_file("share/cl_kernels/snippet_particle_duplication/particle_duplication.cl");
 
 	cl::Program::Sources sources_membrane_physics;
 
@@ -35,7 +35,7 @@ void ParticleMarker::build(const std::string marker_code)
 
 	cl::Program program_membrane_physics;
 	program_membrane_physics = cl::Program(m_context, sources_membrane_physics);
-	cl_int error = program_membrane_physics.build({m_device}, "-I standard_libraries");
+	cl_int error = program_membrane_physics.build({m_device}, "-I share/standard_libraries");
 	if(error != CL_SUCCESS)
 	{
 		message_error("Error building: " << program_membrane_physics.getBuildInfo<CL_PROGRAM_BUILD_LOG>(m_device) << " error code" << error);
@@ -44,9 +44,10 @@ void ParticleMarker::build(const std::string marker_code)
 
 	kernel_random_marker = cl::Kernel(program_membrane_physics, "mark_particles");
 	
-	kernel_concatenate = get_kernel_from_file("cl_kernels/sim_cell_division2.cl", "concatenate");
+	kernel_concatenate = get_kernel_from_file("share/cl_kernels/sim_cell_division2.cl", "concatenate");
 	
 	kernel_random_marker.getWorkGroupInfo(m_device, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, &wg_size);
+	message_debug("Built ParticleMarker\n");
 }
 
 std::vector<event_info> ParticleMarker::run(const cl::Buffer& marked_particle_indices,
@@ -74,6 +75,8 @@ std::vector<event_info> ParticleMarker::run(const cl::Buffer& marked_particle_in
 		nullptr,
 		&event_random_marker
 	);   // TODO: determine proper
+
+	std::vector<cl::Event> dependencies_for_concatenate_kernel = { event_random_marker };
 	
 	// Concatenate data:
 	kernel_concatenate.setArg(0, copied_particles);
@@ -85,12 +88,19 @@ std::vector<event_info> ParticleMarker::run(const cl::Buffer& marked_particle_in
 		cl::NullRange,
 		cl::NDRange(group_count),
 		cl::NullRange,
-		nullptr,
+		&dependencies_for_concatenate_kernel,
 		&event_concatenate
 	);
 
-	message_debug("PARTICLE_MARKER: group_count =", group_count);
-	message_debug("PARTICLE_MARKER: particle_count =", particle_count);
+	std::vector<cl::Event> dependencies_for_memory_barrier = { event_concatenate };
+
+	m_command_queue.enqueueBarrierWithWaitList(
+		&dependencies_for_memory_barrier,
+		nullptr
+	);
+
+	//message_debug("PARTICLE_MARKER: group_count =", group_count);
+	//message_debug("PARTICLE_MARKER: particle_count =", particle_count);
 
 	EventLog log;
 	log.add(event_info("PARTICLE_MARKER: random_marker", event_info::kernel, event_random_marker));

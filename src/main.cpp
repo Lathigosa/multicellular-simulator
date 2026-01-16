@@ -17,6 +17,14 @@
 // PYBIND11 test:
 #include <pybind11/pybind11.h>
 
+#include <iostream>
+#include <exception>
+#include <stdexcept>
+#include <csignal>
+#include <cstdlib>
+#include <stacktrace> // Assuming C++23 support
+#include <execinfo.h>
+
 /**
  * @brief Callback to ignore GTK warning messages.
  *
@@ -44,6 +52,21 @@ void ignore_warning_log(const char *log_domain,
     (void)user_data;
 }
 
+void signalHandler(int signal) {
+    std::cerr << "Received signal: " << signal << std::endl;
+
+    // Allocate array to hold stack trace addresses
+    void *array[10];
+    size_t size;
+
+    // Get stack trace
+    size = backtrace(array, 50);
+    std::cerr << "Stack trace (most recent call first):" << std::endl;
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+
+    std::exit(EXIT_FAILURE); // Exit after handling the signal
+}
+
 /**
  * @brief Entry point of the application.
  *
@@ -55,6 +78,10 @@ void ignore_warning_log(const char *log_domain,
  */
 int main (int argc, char *argv[])
 {
+    // Register signal handlers
+    std::signal(SIGSEGV, signalHandler); // Segmentation Fault
+    std::signal(SIGABRT, signalHandler); // Abort signal
+    std::signal(SIGINT, signalHandler);  // Interrupt signal (Ctrl+C)
 	
     std::cout << res::str::program_title << std::endl;
 

@@ -10,7 +10,7 @@ MembraneSystem::MembraneSystem(cl::CommandQueue & command_queue)
 						   "if (random_variable.x < (0xFFFFFFFF / 4000)) MARK_DUPLICATE;"
 						   "if (random_variable.y < (0xFFFFFFFF / 4000)) MARK_DELETE;"
 						)
-	, m_position_1(*this, [this](unsigned int) -> cl::Kernel { position_duplicator.setArg(3, (unsigned long)std::rand()); return position_duplicator; })
+	, m_position_1(*this, [this](unsigned int) -> cl::Kernel { position_duplicator.setArg(4, (unsigned long)std::rand()); return position_duplicator; })
 	, m_velocity_1(*this)
 	, m_radius_1(*this)
 	, m_neighbors(*this, [this](unsigned int) -> cl::Kernel { return neighbors_duplicator; })
@@ -19,7 +19,7 @@ MembraneSystem::MembraneSystem(cl::CommandQueue & command_queue)
 	, m_membrane_edges(*this)
 	, m_membrane_faces(*this)
 {
-	position_duplicator = get_kernel_from_file("cl_kernels/append_buffer_cell_division_random_displacement.cl", "append_buffer");
+	position_duplicator = get_kernel_from_file("share/cl_kernels/append_buffer_cell_division_random_displacement.cl", "split_particle");
 
 	cl_float4 particle_1 = {{0.0f, 0.0f, 0.1f, 1.0f}};
 	
@@ -53,9 +53,9 @@ std::vector<event_info> MembraneSystem::calculatePhysicsStep() {
 
 std::vector<event_info> MembraneSystem::markParticlesForDivisionOrDeletion() {
 	return kernel_particle_marker.run(
-		new_cell_indices,
+		list_of_particles_to_duplicate,
 		new_cell_group_size,
-		copied_cells,
+		concatenated_list_of_particles_to_duplicate,
 		particle_count
 	);
 }
