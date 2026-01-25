@@ -2,8 +2,8 @@
 
 #include <CL/opencl.hpp>
 
-CellSystem::CellSystem(cl::CommandQueue & command_queue)
-	: ParticleSystem(command_queue)
+CellSystem::CellSystem(cl::CommandQueue & command_queue, bool use_opengl_context)
+	: ParticleSystem(command_queue, use_opengl_context)
 	, kernel_physics(command_queue)
 	, kernel_particle_marker(command_queue,
 	                       "uint2 random_variable = generate_random_int(seed, (uint2)(0, 0));"
@@ -76,13 +76,13 @@ std::vector<event_info> CellSystem::run()
 void CellSystem::initialize_render()
 {
 	test_renderer.initialize(m_position_1, m_command_queue);
-	//membrane_renderer.initialize(m_membrane, m_command_queue);
+	membrane_renderer.initialize(m_position_1, m_membrane, m_command_queue);
 }
 
 void CellSystem::render(camera gl_camera)
 {
 	test_renderer.render(gl_camera, m_position_1, m_command_queue);
-	//membrane_renderer.render(gl_camera, m_membrane, m_command_queue);
+	membrane_renderer.render(gl_camera, m_position_1, m_membrane, m_command_queue);
 }
 
 

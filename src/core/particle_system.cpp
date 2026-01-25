@@ -13,7 +13,7 @@
 
 namespace fs = std::filesystem;
 
-ParticleSystem::ParticleSystem(cl::CommandQueue & command_queue) : DataSystem(command_queue)
+ParticleSystem::ParticleSystem(cl::CommandQueue & command_queue, bool use_opengl_context) : DataSystem(command_queue, use_opengl_context)
 {
 	// Paths:
 	fs::path delete_particles_random = "share/cl_kernels/delete_particles_random.cl";

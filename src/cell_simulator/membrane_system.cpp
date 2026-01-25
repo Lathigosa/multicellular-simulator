@@ -3,7 +3,7 @@
 #include <CL/opencl.hpp>
 
 MembraneSystem::MembraneSystem(cl::CommandQueue & command_queue)
-	: ParticleSystem(command_queue)
+	: ParticleSystem(command_queue, false)
 	, kernel_physics(command_queue)
 	, kernel_particle_marker(command_queue,
 	                       "uint2 random_variable = generate_random_int(seed, (uint2)(0, 0));"

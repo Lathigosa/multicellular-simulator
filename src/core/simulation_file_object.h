@@ -31,6 +31,8 @@ class simulation_file_object
 		std::unique_ptr<render_collection> renderer;
 		//simulation::simulation_world world;
 
+		void initialize_from_current_gl_context();
+
 		void open_file(const std::string& filename);
 
 	protected:

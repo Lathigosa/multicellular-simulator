@@ -18,7 +18,7 @@
 class CellSystem : public ParticleSystem
 {
 public:
-	CellSystem(cl::CommandQueue & command_queue);
+	CellSystem(cl::CommandQueue & command_queue, bool use_opengl_context);
 	CellSystem(const CellSystem& from) = delete;				// TODO: add copy and assignment?
 	CellSystem& operator=(const CellSystem&) = delete;
 

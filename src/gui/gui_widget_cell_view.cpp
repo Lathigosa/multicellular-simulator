@@ -280,6 +280,8 @@ void gui_widget_cell_view::realize()
 {
 	message_debug("Realizing GL Context");
     gl_area.make_current();
+
+	sfo.initialize_from_current_gl_context();
 	//enable_gl_debug();
 	//glDisable(0xDEADBEEF);        // invalid enum -> GL_INVALID_ENUM
 	
@@ -330,6 +332,8 @@ void gui_widget_cell_view::realize()
 		gl_camera.camera_position = glm::vec3(0.0, 0.001, 100.0);
 		gl_camera.far_clip = 1000.0f;
 		gl_camera.near_clip = 10.0f;
+
+		gl_area.throw_if_error();
     }
     catch(const Gdk::GLError& gle)
     {

@@ -12,8 +12,13 @@ simulation_file_object::simulation_file_object()
 	renderer.reset(new render_collection());
 	
 	// Initialize simulator:
-	world->init(false);
-	renderer->init();
+	//world->init(false);
+	//renderer->init();
+}
+
+void simulation_file_object::initialize_from_current_gl_context()
+{
+	world->init(true);
 }
 
 void simulation_file_object::open_file(const std::string& filename)
@@ -24,7 +29,7 @@ void simulation_file_object::open_file(const std::string& filename)
 	renderer.reset(new render_collection());
 	
 	// Initialize simulator:
-	world->init(false);
+	world->init(true);
 	renderer->init();
 
 	// Initialize Lua:

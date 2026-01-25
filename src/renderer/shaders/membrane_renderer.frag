@@ -1,8 +1,7 @@
-#version 450 core
+#version 330 core
 
-out vec4 fragColor;
+in vec4 f_color;
 
-void main()
-{
-    fragColor = vec4(1.0, 1.0, 1.0, 1.0); // white points
+void main(void) {
+    gl_FragColor = f_color;
 }

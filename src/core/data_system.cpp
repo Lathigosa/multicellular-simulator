@@ -6,11 +6,12 @@
 
 #include "utilities/load_file.h"
 
-DataSystem::DataSystem(cl::CommandQueue & command_queue) : 
+DataSystem::DataSystem(cl::CommandQueue & command_queue, bool use_opengl_context) : 
 	m_command_queue(command_queue),
 	m_context(command_queue.getInfo<CL_QUEUE_CONTEXT>()),
     m_device(command_queue.getInfo<CL_QUEUE_DEVICE>()),
-    m_platform(m_device.getInfo<CL_DEVICE_PLATFORM>())
+    m_platform(m_device.getInfo<CL_DEVICE_PLATFORM>()),
+	is_shared_with_opengl(use_opengl_context)
 {
 	
 }
@@ -23,6 +24,11 @@ DataSystem::~DataSystem()
 void DataSystem::build()
 {
 	
+}
+
+bool DataSystem::isSharedWithOpenGL()
+{
+	return is_shared_with_opengl;
 }
 
 cl::Program DataSystem::get_program_from_file(const char* const file_name) const

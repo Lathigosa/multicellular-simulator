@@ -32,7 +32,7 @@ namespace data_buffer
 class ParticleSystem : public DataSystem
 {
 public:
-	ParticleSystem(cl::CommandQueue & command_queue);
+	ParticleSystem(cl::CommandQueue & command_queue, bool use_opengl_context);
 	ParticleSystem(const ParticleSystem& from) = delete;			// TODO: add copy and assignment?
 	ParticleSystem& operator=(const ParticleSystem&) = delete;
 

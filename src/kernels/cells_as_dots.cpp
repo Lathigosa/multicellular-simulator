@@ -60,7 +60,7 @@ void position_spheres::initialize(data_buffer::ParticleData<cl_float4>& position
 
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 32 * 32, nullptr, GL_DYNAMIC_DRAW);
 
-	gl_VBO_cell_location = positions.getVBO(queue);
+	gl_VBO_cell_location = positions.getOpenGLBuffer(queue);
 	glBindBuffer(GL_ARRAY_BUFFER, gl_VBO_cell_location);
 
 
@@ -105,7 +105,7 @@ void position_spheres::render(camera gl_camera, data_buffer::ParticleData<cl_flo
 	glUseProgram(gl_SHA_points);
 	glBindVertexArray(gl_VAO);
 
-	gl_VBO_cell_location = positions.getVBO(queue);
+	gl_VBO_cell_location = positions.getOpenGLBuffer(queue);
 
 	glUniformMatrix4fv(gl_UNI_mvp_matrix, 1, GL_FALSE, &gl_camera.get_view_projection_matrix()[0][0]);
 	glUniformMatrix4fv(gl_UNI_mv_matrix, 1, GL_FALSE, &gl_camera.get_view_matrix()[0][0]);

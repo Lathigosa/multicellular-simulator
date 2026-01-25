@@ -1,5 +1,11 @@
 // Bla
 
+typedef struct {
+    uint i0;
+    uint i1;
+    uint i2;
+} Triangle2;
+
 #define TEMPLATE_DELETE_KERNEL(TYPE, BYTE_SIZE) \
 kernel void delete_particles_##BYTE_SIZE ( global TYPE * out_buffer, \
 										  const global TYPE * in_buffer, \
@@ -17,6 +23,7 @@ TEMPLATE_DELETE_KERNEL(ushort, 2);
 TEMPLATE_DELETE_KERNEL(uint, 4);
 TEMPLATE_DELETE_KERNEL(ulong, 8);
 
+TEMPLATE_DELETE_KERNEL(Triangle2, 12);
 TEMPLATE_DELETE_KERNEL(uint4, 16);
 TEMPLATE_DELETE_KERNEL(uint8, 32);
 TEMPLATE_DELETE_KERNEL(uint16, 64);

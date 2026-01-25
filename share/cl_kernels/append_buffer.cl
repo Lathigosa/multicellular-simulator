@@ -1,5 +1,12 @@
 // Bla
 
+typedef struct {
+    uint i0;
+    uint i1;
+    uint i2;
+} Triangle;
+
+
 #define TEMPLATE_APPEND_KERNEL(TYPE, BYTE_SIZE) \
 kernel void append_particles_##BYTE_SIZE (	global const TYPE * in_buffer, \
 										global TYPE * out_buffer, \
@@ -15,6 +22,7 @@ TEMPLATE_APPEND_KERNEL(ushort, 2);
 TEMPLATE_APPEND_KERNEL(uint, 4);
 TEMPLATE_APPEND_KERNEL(ulong, 8);
 
+TEMPLATE_APPEND_KERNEL(Triangle, 12);
 TEMPLATE_APPEND_KERNEL(uint4, 16);
 TEMPLATE_APPEND_KERNEL(uint8, 32);
 TEMPLATE_APPEND_KERNEL(uint16, 64);
@@ -49,6 +57,7 @@ TEMPLATE_APPEND_ARRAY_KERNEL(ushort, 2);
 TEMPLATE_APPEND_ARRAY_KERNEL(uint, 4);
 TEMPLATE_APPEND_ARRAY_KERNEL(ulong, 8);
 
+TEMPLATE_APPEND_ARRAY_KERNEL(Triangle, 12);
 TEMPLATE_APPEND_ARRAY_KERNEL(uint4, 16);
 TEMPLATE_APPEND_ARRAY_KERNEL(uint8, 32);
 TEMPLATE_APPEND_ARRAY_KERNEL(uint16, 64);

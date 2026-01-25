@@ -80,7 +80,7 @@ namespace data_buffer
          * @param queue OpenCL command queue to synchronize data transfer
          * @return GLuint OpenGL buffer handle
          */
-		virtual GLuint getVBO(cl::CommandQueue& queue) = 0;
+		virtual GLuint getOpenGLBuffer(cl::CommandQueue& queue) = 0;
 
 		/**
          * @brief Duplicate elements in the array using a GPU kernel.
@@ -140,23 +140,6 @@ namespace data_buffer
 		size_t memory_footprint() const override { return m_max_count*entry_size(); }
 
 		/**
-         * @brief Construct array with maximum size.
-         * @param context OpenCL context
-         * @param max_count Maximum number of elements
-         * @param standard_functions OpenCL program containing kernels
-		 * @note Deprecated?
-         */ 
-		ParticleData(cl::Context& context, size_t max_count, cl::Program& standard_functions) : m_context(context), m_max_count(max_count)
-		{
-			// TODO: allow for custom read_write settings:
-			m_buffers[0] = cl::Buffer(context, CL_MEM_READ_WRITE, entry_size()*m_max_count);
-			m_buffers[1] = cl::Buffer(context, CL_MEM_READ_WRITE, entry_size()*m_max_count);
-
-			// Some preprocessor magic to extract the right kernel:
-			initialize_standard_kernels(standard_functions);
-		}
-
-		/**
          * @brief Construct array managed by a ParticleSystem.
          * @param parent_system ParticleSystem managing this array
          * @param standard_functions OpenCL program containing kernels
@@ -166,10 +149,18 @@ namespace data_buffer
 		ParticleData(ParticleSystem& parent_system,
 		      std::function<cl::Kernel(unsigned int)> custom_duplication_function = nullptr,
 		      std::function<cl::Kernel(unsigned int)> custom_deletion_function = nullptr)
-				: m_context(parent_system.getContext())
+				: m_context(parent_system.getContext()), is_shared_with_opengl(parent_system.isSharedWithOpenGL())
 		{
 			m_max_count = parent_system.getMaximalParticleCount();
 			parent_system.manageArray(this);
+
+			if (is_shared_with_opengl) // TODO: properly release these objects on destruction.
+			{
+				glGenBuffers(1, &VBO);
+				glBindBuffer(GL_ARRAY_BUFFER, VBO);
+				glBufferData(GL_ARRAY_BUFFER, entry_size()*m_max_count, nullptr, GL_DYNAMIC_DRAW);
+				render_buffer = cl::BufferGL(m_context, CL_MEM_READ_WRITE, VBO);
+			}
 			
 			// TODO: allow for custom read_write settings:
 			m_buffers[0] = cl::Buffer(m_context, CL_MEM_READ_WRITE, entry_size()*m_max_count);
@@ -184,15 +175,20 @@ namespace data_buffer
 
 		void initialize_standard_kernels(const cl::Program& standard_functions)
 		{
-			if constexpr (is_cl_array<T>::value) {
-				duplication_kernel = cl::Kernel(standard_functions, ("append_particles_array_" + std::to_string(sizeof(typename T::value_type))).c_str());
-				message_debug("Created kernel named ", "append_particles_array_" + std::to_string(sizeof(typename T::value_type)), " with index ", duplication_kernel.get());
-				// TODO: fix deletion kernel!!
-				deletion_kernel = cl::Kernel(standard_functions, ("delete_particles_" + std::to_string(sizeof(typename T::value_type))).c_str());
-			} else {
-				duplication_kernel = cl::Kernel(standard_functions, ("append_particles_" + std::to_string(entry_size())).c_str());
-				message_debug("Created kernel named ", "append_particles_" + std::to_string(entry_size()), " with index ", duplication_kernel.get());
-				deletion_kernel = cl::Kernel(standard_functions, ("delete_particles_" + std::to_string(entry_size())).c_str());
+			try {
+				if constexpr (is_cl_array<T>::value) {
+					duplication_kernel = cl::Kernel(standard_functions, ("append_particles_array_" + std::to_string(sizeof(typename T::value_type))).c_str());
+					message_debug("Created kernel named ", "append_particles_array_" + std::to_string(sizeof(typename T::value_type)), " with index ", duplication_kernel.get());
+					// TODO: fix deletion kernel!!
+					deletion_kernel = cl::Kernel(standard_functions, ("delete_particles_" + std::to_string(sizeof(typename T::value_type))).c_str());
+				} else {
+					duplication_kernel = cl::Kernel(standard_functions, ("append_particles_" + std::to_string(entry_size())).c_str());
+					message_debug("Created kernel named ", "append_particles_" + std::to_string(entry_size()), " with index ", duplication_kernel.get());
+					deletion_kernel = cl::Kernel(standard_functions, ("delete_particles_" + std::to_string(entry_size())).c_str());
+				}
+			} catch (const cl::Error& error) {
+				message_debug("error:", error.err());
+				throw error;
 			}
 		}
 
@@ -236,7 +232,7 @@ namespace data_buffer
 			m_used_count += values.size();
 		}
 
-		GLuint getVBO(cl::CommandQueue& queue) override
+		GLuint getOpenGLBuffer(cl::CommandQueue& queue) override
 		{
 			// Initialize new VBO when necessary:
 			if (VBO == 0)
@@ -250,13 +246,48 @@ namespace data_buffer
 			const size_t bytes = m_used_count * entry_size();
 			if (bytes == 0) return VBO;
 
-			std::vector<std::byte> transfer_array(bytes);
+			if (is_shared_with_opengl)
+			{
+				// If context-shared, we can copy directly on GPU:
+				// (This may be sped up a bit more by not copying altogether,
+				// but that introduces some extra thread management to prevent
+				// concurrent access. This is TODO.)
+				glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+				glFlush();
 
-			queue.enqueueReadBuffer(getFrontBuffer(), CL_TRUE, 0, bytes, transfer_array.data());
+				std::vector<cl::Memory> shared_objects = { render_buffer };
 
-			glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    		glBufferData(GL_ARRAY_BUFFER, bytes, transfer_array.data(), GL_DYNAMIC_DRAW);
+				// TODO: make GL object acquisition batched rather than individual like it is now.
 
+				cl::Event acquire_event;
+
+				// Acquire for OpenCL
+				queue.enqueueAcquireGLObjects(&shared_objects, nullptr, &acquire_event);
+
+				cl::Event copy_event;
+
+				std::vector<cl::Event> dependencies_for_copy = { acquire_event };
+
+				// OpenCL kernels or buffer operations go here
+				// e.g. queue.enqueueWriteBuffer(...)
+				queue.enqueueCopyBuffer(getFrontBuffer(), render_buffer, 0, 0, m_used_count*entry_size(), &dependencies_for_copy, &copy_event);
+
+				std::vector<cl::Event> dependencies_for_release = { copy_event };
+
+				// Release back to OpenGL
+				queue.enqueueReleaseGLObjects(&shared_objects, &dependencies_for_release);
+				queue.flush();
+
+			} else {
+				// If not context-shared, we have to copy through CPU (slow!):
+				std::vector<std::byte> transfer_array(bytes);
+
+				queue.enqueueReadBuffer(getFrontBuffer(), CL_TRUE, 0, bytes, transfer_array.data());
+
+				glBindBuffer(GL_ARRAY_BUFFER, VBO);
+				glBufferData(GL_ARRAY_BUFFER, bytes, transfer_array.data(), GL_DYNAMIC_DRAW);
+			}
+			
 			VBO_needs_refresh = true;
 			return VBO;
 		}
@@ -361,6 +392,7 @@ namespace data_buffer
 		
 	private:
 		cl::Buffer m_buffers[2];
+		cl::BufferGL render_buffer;
 		size_t m_used_count = 0;
 		size_t m_max_count;
 
@@ -373,6 +405,7 @@ namespace data_buffer
 
 		GLuint VBO = 0;
 		bool VBO_needs_refresh = true;
+		bool is_shared_with_opengl;
 
 		std::function<cl::Kernel(unsigned int)> m_duplication_function = nullptr;
 		std::function<cl::Kernel(unsigned int)> m_deletion_function = nullptr;

@@ -82,6 +82,22 @@ void simulation_world::init(bool use_gl_context)
 	else
 	{
 		message_debug("Connected OpenCL context to OpenGL.");
+
+		Display* x11_display = glXGetCurrentDisplay();
+		GLXContext glx_context = glXGetCurrentContext();
+
+		if (!x11_display || !glx_context) {
+			bool is_wayland = Gdk::Display::get_default()->get_name() == "wayland";
+			bool is_x11 = Gdk::Display::get_default()->get_name() == "x11";
+			if (is_wayland) {
+				throw std::runtime_error("Cannot connect OpenCL to OpenGL: No current GLX context. You are using Wayland, and sadly that's not supported yet. Please run with the environment variable GDK_BACKEND=x11.");
+			} else if (is_x11) {
+				throw std::runtime_error("Cannot connect OpenCL to OpenGL: No current GLX context. It is unclear why, because you are using x11 and that should work.");
+			} else {
+				throw std::runtime_error("Cannot connect OpenCL to OpenGL: No current GLX context. You are not on x11 or wayland. Are you using an unsupported display?");
+			}
+		}
+		
 		// Create an OpenCL context linked to an OpenGL context:
 		cl_context_properties properties[] = {
 			CL_GL_CONTEXT_KHR, (cl_context_properties) glXGetCurrentContext(),
@@ -89,8 +105,9 @@ void simulation_world::init(bool use_gl_context)
 			CL_CONTEXT_PLATFORM, (cl_context_properties) default_platform(),
 			0
 		};
-
+		message_debug("Trying...");
 		opencl_context = cl::Context({default_device}, properties);
+		message_debug("Success!");
 	}
 	#endif // NO_UI
 
@@ -100,7 +117,7 @@ void simulation_world::init(bool use_gl_context)
 	if(cell_system != nullptr)
 		delete cell_system;
 	
-	cell_system = new CellSystem(queue);
+	cell_system = new CellSystem(queue, use_gl_context);
 
 	has_initialized = true;
 }

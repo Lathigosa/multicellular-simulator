@@ -14,7 +14,7 @@
 class DataSystem
 {
 public:
-	DataSystem(cl::CommandQueue & command_queue);
+	DataSystem(cl::CommandQueue & command_queue, bool use_opengl_context);
 	DataSystem(const DataSystem& from) = delete;			// TODO: add copy and assignment?
 	DataSystem& operator=(const DataSystem&) = delete;
 
@@ -30,12 +30,15 @@ public:
 	cl::Program get_program_from_file(const char* const file_name) const;
 	cl::Kernel get_kernel_from_file(const char* const file_name, const char* const kernel_name) const;
 
+	bool isSharedWithOpenGL();
+
 protected:
 	cl::CommandQueue& m_command_queue;
 	cl::Context m_context;
 	cl::Device m_device;
 	cl::Platform m_platform;
 
+	bool is_shared_with_opengl;
 };
 
 
