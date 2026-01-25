@@ -21,12 +21,12 @@ void cell_particle_physics::build()
 	std::ostringstream opts;
 
 	opts << std::fixed << std::setprecision(1)
-		<< "-DGRID_X_SIZE=" << grid_size_x << " "
-		<< "-DGRID_Y_SIZE=" << grid_size_y << " "
-		<< "-DGRID_Z_SIZE=" << grid_size_z << " "
-		<< "-DVOXEL_X_SIZE=" << voxel_x_size << "f "
-		<< "-DVOXEL_Y_SIZE=" << voxel_y_size << "f "
-		<< "-DVOXEL_Z_SIZE=" << voxel_z_size << "f "
+		<< "-DGRID_X_SIZE=" << grid_size.x << " "
+		<< "-DGRID_Y_SIZE=" << grid_size.y << " "
+		<< "-DGRID_Z_SIZE=" << grid_size.z << " "
+		<< "-DVOXEL_X_SIZE=" << voxel_size.x << "f "
+		<< "-DVOXEL_Y_SIZE=" << voxel_size.y << "f "
+		<< "-DVOXEL_Z_SIZE=" << voxel_size.z << "f "
 		<< "-DMAX_CELLS_PER_VOXEL=" << max_cells_per_voxel;
 
 	std::string options = opts.str();
@@ -61,8 +61,8 @@ void cell_particle_physics::build()
 	kernel_sort_particles.getWorkGroupInfo(m_device, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, &wg_size);
 
 	// Initialize Buffers:
-	grid_with_particles = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*max_cells_per_voxel*grid_size_x*grid_size_y*grid_size_z);
-	grid_with_particles_count = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*grid_size_x*grid_size_y*grid_size_z);
+	grid_with_particles = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*max_cells_per_voxel*grid_size.x*grid_size.y*grid_size.z);
+	grid_with_particles_count = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*grid_size.x*grid_size.y*grid_size.z);
 }
 
 std::vector<event_info> cell_particle_physics::run(data_buffer::ParticleData<cl_float4>& position_1,
@@ -87,7 +87,7 @@ std::vector<event_info> cell_particle_physics::run(data_buffer::ParticleData<cl_
 		grid_with_particles,
 		fill_pattern_uint_full,
 		0,
-		sizeof(cl_uint)*16*grid_size_x*grid_size_y*grid_size_z,
+		sizeof(cl_uint)*16*grid_size.x*grid_size.y*grid_size.z,
 		nullptr,
 		&event_clean_grid_with_particles
 	);
@@ -96,7 +96,7 @@ std::vector<event_info> cell_particle_physics::run(data_buffer::ParticleData<cl_
 		grid_with_particles_count,
 		fill_pattern_uint_zero,
 		0,
-		sizeof(cl_uint)*grid_size_x*grid_size_y*grid_size_z,
+		sizeof(cl_uint)*grid_size.x*grid_size.y*grid_size.z,
 		nullptr,
 		&event_clean_grid_with_particles_count
 	);

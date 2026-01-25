@@ -3,9 +3,13 @@
 #include "model/icosphere.hpp"
 
 ParticleMembraneData::ParticleMembraneData(ParticleSystem& parent_system)
-    : data_buffer::ParticleData<cl::array<cl_float4, 256>>(parent_system)
+    : data_buffer::ParticleData<cl::array<cl_float4, 256>>(parent_system, [this](unsigned int) -> cl::Kernel {
+		position_duplicator.setArg(4, (unsigned long)std::rand());
+		//message_debug("Running splitter.");
+		return position_duplicator;
+	})
 {
-    
+    position_duplicator = parent_system.get_kernel_from_file("share/cl_kernels/split_particle_membrane.cl", "split_particle_membrane");
 }
 
 void ParticleMembraneData::addIcosphereParticle(cl::CommandQueue& queue)

@@ -32,10 +32,14 @@ cl::Program DataSystem::get_program_from_file(const char* const file_name) const
 	sources.push_back({kernel_code.c_str(), kernel_code.length()});
 
 	cl::Program program = cl::Program(m_context, sources);
-	if(program.build({m_device}, "-I share/standard_libraries") != CL_SUCCESS)
-	{
+	try {
+		if(program.build({m_device}, "-I share/standard_libraries") != CL_SUCCESS)
+		{
+			message_error("Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(m_device));
+			exit(1);
+		}
+	} catch (const cl::Error& error) {
 		message_error("Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(m_device));
-		exit(1);
 	}
 
 	return program;

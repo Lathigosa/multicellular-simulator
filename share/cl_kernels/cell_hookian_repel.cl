@@ -37,7 +37,7 @@ kernel void cell_hookian_repel(
 	{
 		uint grid_id = get_grid_id_from_coords((int3)(grid_coords.x + x, grid_coords.y + y, grid_coords.z + z)); 	// Defined in "sort_particles_in_3d_grid.cl".
 		
-		// TODO: base next loop on in_grid_counter:
+		// For all cells that are in the current grid voxel:
 		for(int i=0; i<in_grid_counter[grid_id]; i++)		// MAX_CELLS_PER_VOXEL defined in "sort_particles_in_3d_grid.cl".
 		{
 			int a = in_grid[grid_id * MAX_CELLS_PER_VOXEL + i];
@@ -56,8 +56,20 @@ kernel void cell_hookian_repel(
 			//float force_magnitude = 24.0f * (0.5f) / dist * (2.0f*pown((in_position[a].w + my_size) / dist, 12) - pown((in_position[a].w + my_size) / dist, 6));
 			
 			// Hookian Repel:
-			float force_magnitude = max(0.0f, (my_size + your_size - dist) * 10.0f);	//FOR PERFORMANCE TESTING
-			//float force_magnitude = max(0.0f, pown((in_position[a].w + my_size) / dist, 12) * 0.0001f);	//FOR PERFORMANCE TESTING PURPOSES, SET MULTIPLIER TO 100.0f!
+			const float repel_strength = 10.0f;
+			const float falloff_distance = 0.8f;
+			//float force_magnitude = max(0.0f, (my_size + your_size - dist) * 10.0f);	//FOR PERFORMANCE TESTING
+			////float force_magnitude = max(0.0f, pown((in_position[a].w + my_size) / dist, 12) * 0.0001f);	//FOR PERFORMANCE TESTING PURPOSES, SET MULTIPLIER TO 100.0f!
+			float distance_from_cell_contact = dist - (my_size + your_size);
+			float force_magnitude;
+			if (distance_from_cell_contact < 0.0f) {
+				force_magnitude = -repel_strength*distance_from_cell_contact;
+			} else if (distance_from_cell_contact < 0.0f) {
+				float divided = distance_from_cell_contact/falloff_distance;
+				force_magnitude = -repel_strength*distance_from_cell_contact*(1.0f - sqrt(1.0f - (divided - 1.0f)*(divided - 1.0f)));
+			} else {
+				force_magnitude = 0.0f;
+			}
 
 			float3 force = force_magnitude * force_direction;
 

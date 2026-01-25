@@ -42,8 +42,6 @@ class position_spheres // : public render_unit_template
 		GLuint		gl_ATT_radius;						// Radius attribute.
 	    GLuint		gl_VAO;								// The grid VAO.
 
-		unsigned int particle_count;
-
 		bool has_initialized;
 };
 

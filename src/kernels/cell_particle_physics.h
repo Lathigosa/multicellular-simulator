@@ -8,6 +8,8 @@
 
 #include <CL/opencl.hpp>
 
+#include <glm/glm.hpp>
+
 #include <vector>
 #include <string>
 
@@ -53,6 +55,8 @@ public:
 	                            const data_buffer::ParticleData<cl_float4>& position_2,
 	                            const data_buffer::ParticleData<cl_float>& radius_2,
 	                            unsigned int particle_count);
+
+	void render_grid();
 private:
 
 	cl::Kernel kernel_membrane_physics;
@@ -64,13 +68,8 @@ private:
 	cl::Buffer grid_with_particles;				// Buffer containing particle indices per voxel.
 	cl::Buffer grid_with_particles_count;		// Buffer containing amount of particles per voxel.
 
-	unsigned int grid_size_x = 64;
-	unsigned int grid_size_y = 64;
-	unsigned int grid_size_z = 64;
-
-	float voxel_x_size = 10.0f;
-	float voxel_y_size = 10.0f;
-	float voxel_z_size = 10.0f;
+	glm::vec<3, unsigned int> grid_size = {64, 64, 64};
+	glm::vec<3, float> voxel_size = {10.0f, 10.0f, 10.0f};
 
 	unsigned int max_cells_per_voxel = 256;
 

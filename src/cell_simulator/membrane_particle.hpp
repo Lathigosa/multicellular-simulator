@@ -15,6 +15,7 @@ public:
     void addIcosphereParticle(cl::CommandQueue& queue);
 
 private:
+    cl::Kernel position_duplicator;
 };
 
 #endif // MEMBRANE_PARTICLE_HPP_INCLUDED

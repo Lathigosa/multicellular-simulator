@@ -1,7 +1,5 @@
 #include "kernels/cells_as_dots.h"
 
-#include <iostream>
-
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <CL/cl_gl.h>
@@ -11,44 +9,19 @@
 
 #include "gui/shader_tools.h"
 
-const char * const source_vertex_points = "#version 330 core\n"
-"attribute vec3 coordinate;"
-"attribute float radius;"
-"varying vec4 f_color;"
-"uniform mat4 MVP_matrix;"
-"uniform mat4 MV_matrix;"
-"uniform mat4 P_matrix;"
-"uniform float screen_width;"
+const char source_vertex_points[] = {
+	#embed "shaders/vertices_as_spheres.vert"
+	,'\0'
+};
 
-"void main(void) {"
-	"vec4 eye_position = MV_matrix * vec4(coordinate, 1.0);"
-	"vec4 projection = P_matrix * vec4(radius, radius, eye_position.z, eye_position.w);"
-	"gl_Position = P_matrix * eye_position;"
-	"float screen_z = (-gl_Position.z) * 1.0;"
-	//"gl_PointSize = screen_z * 1.0;"
-	"gl_PointSize = screen_width * projection.x / projection.w;"
-	//"f_color = vec4(screen_z / 200.0 + 0.5, screen_z * 0.0005 + 1.0, 1.0, 1.0);"
-	"f_color = vec4(min(gl_VertexID / 16.0 + 0.1, 1.0), min(gl_VertexID / 256.0 + 0.1, 1.0), min(gl_VertexID / 256.0 / 256.0 + 0.1, 1.0), 1.0);"
-	//"vec4 eye_pos = MV_matrix * vec4(coordinate, 1.0);"
-
-"}";
-
-const char * const source_fragment_points = "#version 330 core\n"
-"varying vec4 f_color;"
-
-"void main(void) {"
-	"if(length(gl_PointCoord - vec2(0.5, 0.5)) > 0.5)"
-		"discard;"
-	
-    "gl_FragColor = (1.0f - 1.0f*length(gl_PointCoord - vec2(0.5, 0.5))) * f_color;"
-"}";
+const char source_fragment_points[] = {
+	#embed "shaders/vertices_as_spheres.frag"
+	,'\0'
+};
 
 position_spheres::position_spheres()
 {
 	
-
-	// Test count:
-	particle_count = 32 * 32 * 8; 	// TODO: remove
 }
 
 position_spheres::~position_spheres()
@@ -94,23 +67,23 @@ void position_spheres::initialize(data_buffer::ParticleData<cl_float4>& position
 	glEnableVertexAttribArray(gl_ATT_coordinate);
 
 	glVertexAttribPointer(
-		gl_ATT_coordinate,     // attribute
-		3,                   // number of elements per vertex, here (x, y, z)
-		GL_FLOAT,            // the type of each element
-		GL_FALSE,            // take our values as-is
-		sizeof(float) * 4,       // space between values
-		nullptr                    // use the vertex buffer object
+		gl_ATT_coordinate,
+		3,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(float) * 4,
+		nullptr
 	);
 
 	glEnableVertexAttribArray(gl_ATT_radius);
 
 	glVertexAttribPointer(
-		gl_ATT_radius,     // attribute
-		1,                   // number of elements per vertex, here (x, y, z)
-		GL_FLOAT,            // the type of each element
-		GL_FALSE,            // take our values as-is
-		sizeof(float) * 4,       // space between values
-		(const GLvoid*)(3*sizeof(GLfloat))                    // use the vertex buffer object
+		gl_ATT_radius,
+		1,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(float) * 4,
+		(const GLvoid*)(3*sizeof(GLfloat))
 	);
 
 

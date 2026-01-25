@@ -27,10 +27,10 @@ public:
 	cl::Device& getDevice();
 	cl::Platform& getPlatform();
 
-protected:
 	cl::Program get_program_from_file(const char* const file_name) const;
 	cl::Kernel get_kernel_from_file(const char* const file_name, const char* const kernel_name) const;
 
+protected:
 	cl::CommandQueue& m_command_queue;
 	cl::Context m_context;
 	cl::Device m_device;
