@@ -40,7 +40,7 @@ public:
 
 	virtual std::vector<event_info> customDeletionFunction(cl::Buffer& empty_cells,
 	                                                       unsigned int& empty_count);
-	
+
 	virtual std::vector<event_info> customDuplicationFunction(cl::Buffer& empty_particles,
 	                                                          cl::Buffer& copied_particles,
 	                                                          unsigned int& copied_count,
@@ -48,10 +48,9 @@ public:
 
 	std::vector<event_info> finalizeDuplicationDeletion();
 
-	void setupBuffers();
-
 	virtual ~ParticleSystem();
 
+	size_t calculate_memory_footprint_per_particle() const;
 	unsigned int getMaximalParticleCount();
 
 	void manageArray(data_buffer::AbstractParticleData* array);
@@ -96,6 +95,8 @@ private:
 	std::vector<event_info> deleteMarkedParticles();
 	std::vector<event_info> duplicateMarkedParticles();
 	std::vector<event_info> clearDuplicationDeletionBuffers();
+
+	void setupBuffers();
 
 };
 

@@ -54,6 +54,6 @@ void main()
     vec4 pos = vertex_positions[global_index] + particle_positions[gl_InstanceID];
 
     // Output clip-space position
-    f_color = vec4(min(global_index / 16.0 + 0.1, 1.0), min(global_index / 256.0 + 0.1, 1.0), min(global_index / 256.0 / 256.0 + 0.1, 1.0), 1.0);
+    f_color = vec4(min(gl_InstanceID / 16.0 + 0.1, 1.0), min(gl_InstanceID / 256.0 + 0.1, 1.0), min(gl_InstanceID / 256.0 / 256.0 + 0.1, 1.0), 1.0);
     gl_Position = MVP_matrix * vec4(pos.xyz, 1.0); // assume already in clip-space for simplicity
 }

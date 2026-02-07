@@ -36,6 +36,7 @@ class MembraneRenderer // : public render_unit_template
 		GLuint		gl_SSBO_cell_location;
 		GLuint		gl_IBO_triangles;
 		GLuint      gl_IBO_edges;
+		GLuint		gl_IBO_edge_neighbors;
 		GLuint		gl_UNI_vertices_per_cell;
 	    GLuint		gl_SHA_points;						// The shader used for rendering grid lines (should be used instanced).
 	    GLuint		gl_UNI_mvp_matrix;					// The uniform pointer to the mvp matrix uniform.

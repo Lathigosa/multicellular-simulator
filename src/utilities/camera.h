@@ -13,7 +13,7 @@
 struct camera
 {
     /// Near clipping plane distance.
-    float near_clip = 0.01f;
+    float near_clip = 0.001f;
 
     /// Far clipping plane distance.
     float far_clip = 100.0f;

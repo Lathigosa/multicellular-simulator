@@ -82,6 +82,9 @@ void MembraneRenderer::initialize(data_buffer::ParticleData<cl_float4> positions
 	gl_IBO_edges = membranes.edges_index_buffer.getOpenGLBuffer(queue);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gl_IBO_edges);
 
+	gl_IBO_edge_neighbors = membranes.vertex_opposite_to_triangle_edge_buffer.getOpenGLBuffer(queue);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gl_IBO_edge_neighbors);
+
 	checkError();
 
 	// Unbind the VAO:
@@ -103,8 +106,11 @@ void MembraneRenderer::render(camera gl_camera, data_buffer::ParticleData<cl_flo
 	glBindVertexArray(gl_VAO);
 
 	// Refresh the vertex buffer:
+	gl_SSBO_cell_location = positions.getOpenGLBuffer(queue);
 	gl_SSBO_vertex_location = membranes.vertex_buffer.getOpenGLBuffer(queue);
 	gl_IBO_triangles = membranes.triangles_index_buffer.getOpenGLBuffer(queue);
+	gl_IBO_edges = membranes.edges_index_buffer.getOpenGLBuffer(queue);
+	gl_IBO_edge_neighbors = membranes.vertex_opposite_to_triangle_edge_buffer.getOpenGLBuffer(queue);
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gl_SSBO_vertex_location);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, gl_SSBO_cell_location);
@@ -136,4 +142,15 @@ void MembraneRenderer::render(camera gl_camera, data_buffer::ParticleData<cl_flo
 		nullptr,
 		membranes.vertex_buffer.used_count()
 	);
+
+	/*
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gl_IBO_edge_neighbors);
+	glDrawElementsInstanced(
+		GL_LINES,
+		2*membranes.max_edges_per_cell,
+		GL_UNSIGNED_INT,
+		nullptr,
+		membranes.vertex_buffer.used_count()
+	);
+	*/
 }

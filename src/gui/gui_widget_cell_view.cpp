@@ -135,10 +135,10 @@ bool gui_widget_cell_view::scroll_event(GdkEventScroll* event)
 	gl_camera_previous = gl_camera;
 	if(event->state & GDK_CONTROL_MASK)			// Change clip
 	{
-		gl_camera.far_clip += delta_y;
+		gl_camera.far_clip *= delta_y;
 	} else if(event->state & GDK_SHIFT_MASK)	// Change clip
 	{
-		gl_camera.near_clip += delta_y;
+		gl_camera.near_clip *= delta_y;
 	} else					// Zoom
 	{
 		float distance = gl_camera_previous.get_target_distance();
@@ -331,7 +331,7 @@ void gui_widget_cell_view::realize()
         /// Set camera properties:
 		gl_camera.camera_position = glm::vec3(0.0, 0.001, 100.0);
 		gl_camera.far_clip = 1000.0f;
-		gl_camera.near_clip = 10.0f;
+		gl_camera.near_clip = 0.1f;
 
 		gl_area.throw_if_error();
     }

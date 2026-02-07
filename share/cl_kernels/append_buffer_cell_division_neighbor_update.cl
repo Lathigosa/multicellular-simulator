@@ -9,7 +9,6 @@ kernel void append_buffer(	global uint16* out_buffer_neighbors,
 							int append_index,
 							global float4* in_position,
 							global uint16* vertex_indices,
-							
 							global float4* vertices,
 							global uint2* edges,
 							global uint16* faces)

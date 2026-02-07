@@ -43,6 +43,31 @@ namespace data_buffer
 		unsigned int size;
 	};
 
+	class AbstractDoubleBuffer
+	{
+	public:
+		/// Swap front and back buffers
+		virtual void swapBuffers() = 0;
+
+		/// Get the front buffer for read operations
+		virtual cl::Buffer getFrontBuffer() const = 0;
+
+		/// Get the back buffer for write operations
+		virtual cl::Buffer getBackBuffer() const = 0;
+
+		/// Get size of one element
+		virtual size_t entry_size() const = 0;
+
+		/// Compute the memory footprint of the array in bytes
+		virtual size_t memory_footprint() const = 0;
+
+	private:
+		//cl::BufferGL render_buffer;
+		//GLuint VBO = 0;
+		//bool VBO_needs_refresh = true;
+		//bool is_shared_with_opengl;
+	};
+
     /**
      * @class AbstractParticleData
      * @brief Interface for a one-dimensional double-buffered resizable GPU array.
@@ -51,36 +76,14 @@ namespace data_buffer
      * Supports duplication, deletion, buffer swapping, and optional VBO
      * integration.
      */
-	class AbstractParticleData
+	class AbstractParticleData : public AbstractDoubleBuffer
 	{
 	public:
-		/// Swap front and back buffers
-		virtual void swapBuffers() = 0;
-		
-		/// Get the front buffer for read/write operations
-		virtual cl::Buffer getFrontBuffer() const = 0;
-
-		/// Get the back buffer for read/write operations
-		virtual cl::Buffer getBackBuffer() const = 0;
-
-		/// Get size of one element
-		virtual size_t entry_size() const = 0;
-
 		/// Get number of elements currently used
 		virtual unsigned int used_count() const = 0;
 
 		/// Get the maximum number of elements that can be stored
 		virtual unsigned int max_count() const = 0;
-
-		/// Compute the memory footprint of the array in bytes
-		virtual size_t memory_footprint() const = 0;
-
-		/**
-         * @brief Get an OpenGL VBO representing the array.
-         * @param queue OpenCL command queue to synchronize data transfer
-         * @return GLuint OpenGL buffer handle
-         */
-		virtual GLuint getOpenGLBuffer(cl::CommandQueue& queue) = 0;
 
 		/**
          * @brief Duplicate elements in the array using a GPU kernel.
@@ -114,6 +117,29 @@ namespace data_buffer
 
 	template <typename U, size_t N>
 	struct is_cl_array<cl::array<U, N>> : std::true_type {};
+
+	/**
+     * @class DoubleBuffer
+     * @brief One-dimensional double-buffered GPU array of type T.
+     *
+     * @tparam T Type of elements stored in the array
+     */
+	template <typename T>
+	class FixedSizeArray : public AbstractDoubleBuffer
+	{
+	public:
+		size_t entry_size() const override {
+			if constexpr (is_cl_array<T>::value) {
+				return sizeof(typename T::value_type) * std::tuple_size<T>::value;
+			} else {
+				return sizeof(T);
+			}
+		}
+
+		size_t memory_footprint() const override { return m_max_count*entry_size(); }
+	private:
+		size_t m_max_count = 0;
+	};
 	
 	/**
      * @class ParticleData
@@ -232,66 +258,6 @@ namespace data_buffer
 			m_used_count += values.size();
 		}
 
-		GLuint getOpenGLBuffer(cl::CommandQueue& queue) override
-		{
-			// Initialize new VBO when necessary:
-			if (VBO == 0)
-			{
-				glGenBuffers(1, &VBO);
-				VBO_needs_refresh = true;
-			}
-
-			if (!VBO_needs_refresh) return VBO;
-
-			const size_t bytes = m_used_count * entry_size();
-			if (bytes == 0) return VBO;
-
-			if (is_shared_with_opengl)
-			{
-				// If context-shared, we can copy directly on GPU:
-				// (This may be sped up a bit more by not copying altogether,
-				// but that introduces some extra thread management to prevent
-				// concurrent access. This is TODO.)
-				glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-				glFlush();
-
-				std::vector<cl::Memory> shared_objects = { render_buffer };
-
-				// TODO: make GL object acquisition batched rather than individual like it is now.
-
-				cl::Event acquire_event;
-
-				// Acquire for OpenCL
-				queue.enqueueAcquireGLObjects(&shared_objects, nullptr, &acquire_event);
-
-				cl::Event copy_event;
-
-				std::vector<cl::Event> dependencies_for_copy = { acquire_event };
-
-				// OpenCL kernels or buffer operations go here
-				// e.g. queue.enqueueWriteBuffer(...)
-				queue.enqueueCopyBuffer(getFrontBuffer(), render_buffer, 0, 0, m_used_count*entry_size(), &dependencies_for_copy, &copy_event);
-
-				std::vector<cl::Event> dependencies_for_release = { copy_event };
-
-				// Release back to OpenGL
-				queue.enqueueReleaseGLObjects(&shared_objects, &dependencies_for_release);
-				queue.flush();
-
-			} else {
-				// If not context-shared, we have to copy through CPU (slow!):
-				std::vector<std::byte> transfer_array(bytes);
-
-				queue.enqueueReadBuffer(getFrontBuffer(), CL_TRUE, 0, bytes, transfer_array.data());
-
-				glBindBuffer(GL_ARRAY_BUFFER, VBO);
-				glBufferData(GL_ARRAY_BUFFER, bytes, transfer_array.data(), GL_DYNAMIC_DRAW);
-			}
-			
-			VBO_needs_refresh = true;
-			return VBO;
-		}
-
 		std::vector<event_info> performDuplication(cl::CommandQueue& queue,
 		                                           cl::Buffer list_of_particles_to_delete,
 		                                           cl::Buffer list_of_particles_to_copy,
@@ -388,6 +354,71 @@ namespace data_buffer
 			m_used_count -= amount_of_particles_to_delete;
 	
 			return {};
+		}
+
+		/**
+         * @brief Get an OpenGL VBO representing the array.
+         * @param queue OpenCL command queue to synchronize data transfer
+         * @return GLuint OpenGL buffer handle
+         */
+		GLuint getOpenGLBuffer(cl::CommandQueue& queue)
+		{
+			// Initialize new VBO when necessary:
+			if (VBO == 0)
+			{
+				glGenBuffers(1, &VBO);
+				VBO_needs_refresh = true;
+			}
+
+			if (!VBO_needs_refresh) return VBO;
+
+			const size_t bytes = memory_footprint();
+			if (bytes == 0) return VBO;
+
+			if (is_shared_with_opengl)
+			{
+				// If context-shared, we can copy directly on GPU:
+				// (This may be sped up a bit more by not copying altogether,
+				// but that introduces some extra thread management to prevent
+				// concurrent access. This is TODO.)
+				glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+				glFlush();
+
+				std::vector<cl::Memory> shared_objects = {{ render_buffer }};
+
+				// TODO: make GL object acquisition batched rather than individual like it is now.
+
+				cl::Event acquire_event;
+
+				// Acquire for OpenCL
+				queue.enqueueAcquireGLObjects(&shared_objects, nullptr, &acquire_event);
+
+				cl::Event copy_event;
+
+				std::vector<cl::Event> dependencies_for_copy = { acquire_event };
+
+				// OpenCL kernels or buffer operations go here
+				// e.g. queue.enqueueWriteBuffer(...)
+				queue.enqueueCopyBuffer(getFrontBuffer(), render_buffer, 0, 0, memory_footprint(), &dependencies_for_copy, &copy_event);
+
+				std::vector<cl::Event> dependencies_for_release = { copy_event };
+
+				// Release back to OpenGL
+				queue.enqueueReleaseGLObjects(&shared_objects, &dependencies_for_release);
+				queue.flush();
+
+			} else {
+				// If not context-shared, we have to copy through CPU (slow!):
+				std::vector<std::byte> transfer_array(bytes);
+
+				queue.enqueueReadBuffer(getFrontBuffer(), CL_TRUE, 0, bytes, transfer_array.data());
+
+				glBindBuffer(GL_ARRAY_BUFFER, VBO);
+				glBufferData(GL_ARRAY_BUFFER, bytes, transfer_array.data(), GL_DYNAMIC_DRAW);
+			}
+			
+			VBO_needs_refresh = true;
+			return VBO;
 		}
 		
 	private:

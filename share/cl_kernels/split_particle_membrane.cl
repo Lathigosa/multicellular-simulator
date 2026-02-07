@@ -20,6 +20,7 @@ kernel void split_particle_membrane( global const float4* in_buffer,
 							global float4* out_buffer,
 							global uint* in_marked_particles,
 							int first_empty_element_in_array,
+                            constant float4* icosphere,
 							uint2 seed)
 {
 	const uint current_particle = in_marked_particles[get_global_id(1)];
@@ -28,7 +29,8 @@ kernel void split_particle_membrane( global const float4* in_buffer,
 
 	//TODO: perhaps double buffer to prevent race conditions!!!
 	float child_particle_radius = in_buffer[old_index].w; // * HALF_VOLUME_RADIUS_SCALE;	// Multiply by 1/2^(1/3) to preserve volume.
-	float3 current_position = in_buffer[old_index].xyz;
+	//float3 current_position = in_buffer[old_index].xyz;
+    float3 current_position = icosphere[get_global_id(0)].xyz;
 	
 	uint gid = current_particle;
 
@@ -55,6 +57,65 @@ kernel void split_particle_membrane( global const float4* in_buffer,
 
 // Compute a bounding sphere. Not necessarily the smallest bounding sphere, but quick to calculate.
 kernel void compute_bounding_sphere_reduced(
+    global const float4* in_buffer,
+    global float4* sphere_position_output
+)
+{
+    const uint local_index     = get_local_id(0);   // 0..255
+    const uint particle_index  = get_global_id(1);  // particle id
+    const uint base_index      = particle_index * 256;
+
+    // ------------------------------------------------------------------
+    // Local memory used for staggered summation of positions
+    // ------------------------------------------------------------------
+    local float3 local_sum_of_positions[256];
+
+    // Each work-item loads one position into local memory
+    local_sum_of_positions[local_index] =
+        in_buffer[base_index + local_index].xyz;
+
+    // Ensure all work-items have written their values
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // ------------------------------------------------------------------
+    // Tree-style reduction to sum all 256 positions
+    // ------------------------------------------------------------------
+    for (uint stride = 128; stride > 0; stride >>= 1)
+    {
+        if (local_index < stride)
+        {
+            local_sum_of_positions[local_index] += local_sum_of_positions[local_index + stride];
+        }
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+
+    // ------------------------------------------------------------------
+    // One work-item computes center and radius
+    // ------------------------------------------------------------------
+    if (local_index == 0)
+    {
+        float3 center_position = local_sum_of_positions[0] * (1.0f / 256.0f);
+
+        float bounding_sphere_radius = 0.0f;
+
+        for (uint i = 0; i < 256; ++i)
+        {
+            float3 offset = in_buffer[base_index + i].xyz - center_position;
+
+            float distance_from_center = length(offset);
+            bounding_sphere_radius = fmax(bounding_sphere_radius, distance_from_center);
+        }
+
+        // xyz = center position, w = radius
+        sphere_position_output[particle_index] =
+            (float4)(center_position, bounding_sphere_radius);
+    }
+}
+
+
+
+kernel void compute_bounding_sphere_reduced2(
     global const float4* in_buffer,
     global float4* sphere_position_output
 )

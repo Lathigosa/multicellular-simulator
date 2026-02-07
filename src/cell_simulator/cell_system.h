@@ -1,6 +1,7 @@
 #ifndef CELL_SYSTEM_H_INCLUDED
 #define CELL_SYSTEM_H_INCLUDED
 
+
 #ifndef NO_UI
 #include <epoxy/gl.h>
 #endif // NO_UI
@@ -14,7 +15,8 @@
 #include "kernels/particle_marker.h"
 #include "renderer/membrane_renderer.hpp"
 #include "cell_simulator/membrane_particle.hpp"
-
+#include "cell_simulator/centrosome_pair.hpp"
+#include "renderer/centrosomes_as_dots.hpp"
 class CellSystem : public ParticleSystem
 {
 public:
@@ -49,6 +51,7 @@ private:
 	data_buffer::ParticleData<cl_uint16> m_neighbors;					// Indices of neighboring cells.
 
 	ParticleMembraneData m_membrane;
+	CentrosomePair m_centrosome_pair;
 
 	//data_buffer::ParticleData<cl::array<cl_float4, 256>> m_membrane_vertex_positions;
 	//data_buffer::ParticleData<cl::array<cl_float4, 256>> m_membrane_vertex_normal;
@@ -61,6 +64,7 @@ private:
 	// Render functions:
 	position_spheres test_renderer;
 	MembraneRenderer membrane_renderer;
+	CentrosomesAsDotsRenderer centrosome_renderer;
 };
 
 

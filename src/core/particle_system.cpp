@@ -26,7 +26,6 @@ ParticleSystem::ParticleSystem(cl::CommandQueue & command_queue, bool use_opengl
 	kernel_delete_sort     = get_kernel_from_file("share/cl_kernels/delete_particles.cl", "sort_deleted_list");
 
 	// Test count:
-	particle_count = 32*32;	// TODO: remove
 	particle_count = 1;
 	//particle_count = 0;
 	//maximal_cell_count = 32*32*32*32;
@@ -54,13 +53,22 @@ const cl::Program& ParticleSystem::getStandardParticleFunctions() {
 	return m_standard_functions;
 }
 
+size_t ParticleSystem::calculate_memory_footprint_per_particle() const
+{
+	size_t total_entry_size = 0;
+	for (const auto& array : m_managed_arrays) {
+		total_entry_size += array->entry_size();
+	}
+	return total_entry_size;
+}
+
 void ParticleSystem::setupBuffers() {
-	list_of_particles_to_duplicate        = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
-	new_cell_group_size     = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count/workgroup_size);
-	list_of_particles_to_delete    = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
-	deleted_cell_group_size = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count/workgroup_size);
-	concatenated_list_of_particles_to_delete             = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);				
-	concatenated_list_of_particles_to_duplicate            = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
+	list_of_particles_to_duplicate              = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
+	new_cell_group_size                         = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count/workgroup_size);
+	list_of_particles_to_delete                 = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
+	deleted_cell_group_size                     = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count/workgroup_size);
+	concatenated_list_of_particles_to_delete    = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);				
+	concatenated_list_of_particles_to_duplicate = cl::Buffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_uint)*maximal_cell_count);
 }
 
 std::vector<event_info> ParticleSystem::customDeletionFunction(cl::Buffer& empty_cells, unsigned int& empty_count)
@@ -71,7 +79,7 @@ std::vector<event_info> ParticleSystem::customDeletionFunction(cl::Buffer& empty
 	{
 		log.add(value->performDeletion(m_command_queue, empty_cells, empty_count));
 	}
-	
+
 	return std::move(log.get());
 }
 
@@ -85,7 +93,6 @@ std::vector<event_info> ParticleSystem::customDuplicationFunction(cl::Buffer& em
 	{
 		log.add(value->performDuplication(m_command_queue, empty_particles, copied_particles, copied_count, wait_for_events));
 	}
-	
 	return std::move(log.get());
 }
 
@@ -94,7 +101,7 @@ std::vector<event_info> ParticleSystem::deleteMarkedParticles() {
 	// ************************************************** //
 	//  Gather deletion information and delete particles  //
 	// ************************************************** //
-	
+
 	// Get the list of particle indices to be deleted:
 	// This list is expected to be concatenated already by a previous kernel.
 	unsigned int array_cell_deleted_group_size[maximal_cell_count/workgroup_size];
@@ -127,7 +134,7 @@ std::vector<event_info> ParticleSystem::deleteMarkedParticles() {
 	if(empty_count != 0)
 	{
 		message_debug("empty_count = ", empty_count, " | particle count: ", particle_count);
-		
+
 		// Send signal to rearrange the variable list in the derived class:
 		if(empty_count <= particle_count)
 		{
